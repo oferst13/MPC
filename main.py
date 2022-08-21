@@ -15,7 +15,7 @@ class Scenario:
         self.last_outflow = 0
         self.max_flow = None
         self.last_Q = None
-        self.release_hour = None
+        self.release_intervals = None
         self.obj_Q = None
         self.fitness = None
 
@@ -28,8 +28,8 @@ class Scenario:
             to_min += abs(outfall.get_flow(i) - self.obj_Q)
         self.fitness = to_min
 
-    def set_release_hour(self):
-        self.release_hour = math.ceil(Tank.get_last_overflow() * (cfg.dt / 3600))
+    def set_release_intervals(self):
+        self.release_intervals = math.ceil(Tank.get_last_overflow() * (cfg.dt / cfg.release_dt))
 
     def set_last_outflow(self):
         self.last_outflow = Tank.get_last_overflow()
@@ -57,7 +57,7 @@ def set_demands_per_dt():
 
 
 def set_rain_input(rainfile, rain_dt, duration):
-    rain = np.zeros(int(duration / (rain_dt/cfg.dt)))
+    rain = np.zeros(int(duration / (rain_dt / cfg.dt)))
     rain_input = np.genfromtxt(rainfile, delimiter=',')
     rain[:len(rain_input)] = rain_input
     return rain
@@ -96,7 +96,7 @@ def fitness_func(release_vector, idx):
         tank.reset_tank()
     for pipe in Pipe.all_pipes:
         pipe.reset_pipe()
-    release_array = np.reshape(release_vector, (len(Tank.all_tanks), baseline.release_hour))
+    release_array = np.reshape(release_vector, (len(Tank.all_tanks), baseline.release_intervals))
     for num, tank in enumerate(Tank.all_tanks):
         tank.set_releases(release_array[num, :])
     run_model()
@@ -109,6 +109,22 @@ def on_gen(ga_instance):
     print("Generation : ", ga_instance.generations_completed)
     print("Fitness of the best solution :", ga_instance.best_solution()[1])
 
+
+def set_ga_instance():
+    ga_inst = pygad.GA(num_generations=ga.num_generations,
+                       initial_population=ga.pop_init(baseline.release_intervals, len(Tank.all_tanks)),
+                       num_parents_mating=ga.set_parent_num(baseline.release_intervals, len(Tank.all_tanks)),
+                       gene_space=ga.gene_space,
+                       parent_selection_type=ga.parent_selection,
+                       crossover_type=ga.crossover_type,
+                       crossover_probability=ga.crossover_prob,
+                       mutation_type=ga.mutation_type,
+                       mutation_probability=ga.mutation_prob,
+                       mutation_by_replacement=ga.mutation_by_replacement,
+                       stop_criteria=ga.stop_criteria,
+                       fitness_func=fitness_func,
+                       on_generation=on_gen)
+    return ga_inst
 
 # runtime = Timer()
 # runtime.start()
@@ -155,14 +171,12 @@ outfall = Node('outfall', [pipe6])
 
 demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)
-#for tank in Tank.all_tanks:
-   # tank.set_daily_demands(demands_PD)  # happens only once
+# for tank in Tank.all_tanks:
+# tank.set_daily_demands(demands_PD)  # happens only once
 
 # Create forecast - currently real rain only!
 forecast_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
 Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
-
-
 
 # starting main sim loop
 baseline = Scenario()
@@ -172,7 +186,7 @@ run_model()
 baseline.set_last_outflow()
 baseline.set_max_flow()
 baseline.set_last_Q()
-baseline.set_release_hour()
+baseline.set_release_intervals()
 baseline.calc_obj_Q()
 baseline.set_fitness()
 mass_balance_err = calc_mass_balance()
@@ -181,23 +195,9 @@ zero_Q = outfall.get_zero_Q()
 last_overflow = Tank.get_last_overflow()
 obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
 
-
 optim = input('optimize? Y/N')
 if optim == 'Y':
-    ga_instance = pygad.GA(num_generations=ga.num_generations,
-                           initial_population=ga.pop_init(baseline.release_hour, len(Tank.all_tanks)),
-                           num_parents_mating=ga.set_parent_num(baseline.release_hour, len(Tank.all_tanks)),
-                           gene_space=ga.gene_space,
-                           parent_selection_type=ga.parent_selection,
-                           crossover_type=ga.crossover_type,
-                           crossover_probability=ga.crossover_prob,
-                           mutation_type=ga.mutation_type,
-                           mutation_probability=ga.mutation_prob,
-                           mutation_by_replacement=ga.mutation_by_replacement,
-                           stop_criteria=ga.stop_criteria,
-                           fitness_func=fitness_func,
-                           on_generation=on_gen)
+    ga_instance = set_ga_instance()
     ga_instance.run()
-#runtime.stop()
+# runtime.stop()
 print('d')
-

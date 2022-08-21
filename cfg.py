@@ -3,7 +3,7 @@ import copy
 
 dt = 60
 rain_dt = 60 * 10
-release_dt = 30 * 60
+release_dt = 60 * 60
 beta = 5 / 4
 manning = 0.012
 sim_days = 1

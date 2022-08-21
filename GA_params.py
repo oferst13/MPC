@@ -12,8 +12,8 @@ mutation_type = "random"
 stop_criteria = "saturate_80"
 
 
-def pop_init(release_hr, n_tanks):
-    num_genes = release_hr * n_tanks
+def pop_init(release_interval, n_tanks):
+    num_genes = release_interval * n_tanks
     num_sols = math.ceil(num_genes * 1.3)
     sol_zero = np.zeros(num_genes)
     sol_one = np.ones(num_genes) * gene_space[0]
