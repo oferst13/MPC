@@ -28,7 +28,10 @@ class Node:
     def get_zero_Q(self):
         last_Q_list = []
         for pipe in self.receiving_from:
-            last_Q_list.append(np.max(np.nonzero(pipe.outlet_Q)))
+            if np.sum(np.nonzero(pipe.outlet_Q)) > 0:
+                last_Q_list.append(np.max(np.nonzero(pipe.outlet_Q)))
+            else:
+                last_Q_list.append(0)
         return max(last_Q_list) + 1
 
     def get_max_Q(self): # this works only with 1 pipe for now

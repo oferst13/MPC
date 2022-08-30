@@ -12,6 +12,9 @@ import GA_params as ga
 
 class Scenario:
     def __init__(self):
+        self.reset_scenario()
+
+    def reset_scenario(self):
         self.last_outflow = 0
         self.max_flow = None
         self.last_Q = None
@@ -63,7 +66,7 @@ def set_rain_input(rainfile, rain_dt, duration):
     return rain
 
 
-def set_rainfile_name(prefix, idx):
+def set_forecast_filename(prefix, idx):
     idx_str = str(idx)
     cur_filename = '-'.join([prefix, idx_str])
     cur_filename = '.'.join([cur_filename, 'csv'])
@@ -75,8 +78,8 @@ def calc_mass_balance():
     return mass_balance
 
 
-def run_model():
-    for i in range(cfg.sim_len):
+def run_model(duration):
+    for i in range(duration):
         if sum(forecast_rain[int(i // (cfg.rain_dt / cfg.dt)):-1]) + Tank.get_tot_storage() == 0:
             break  # this should break forecast run only!
         for tank in Tank.all_tanks:
@@ -170,25 +173,22 @@ node2 = Node('node2', [pipe4, pipe5], [pipe6])
 outfall = Node('outfall', [pipe6])
 
 demands_PD = set_demands_per_dt()
-Tank.set_daily_demands_all(demands_PD)
-# for tank in Tank.all_tanks:
-# tank.set_daily_demands(demands_PD)  # happens only once
+Tank.set_daily_demands_all(demands_PD)  # happens only once
 
-# Create forecast - currently real rain only!
-forecast_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
-Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
+for forecast_idx in range(1, num_forecast_files + 1):
+    # Create forecast - currently real rain only!
+    forecast_file = set_forecast_filename('09-10', forecast_idx)
+    forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
+    Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
+    baseline = Scenario()
+    run_model(cfg.forecast_len)
 
-# starting main sim loop
-baseline = Scenario()
-
-run_model()
-
-baseline.set_last_outflow()
-baseline.set_max_flow()
-baseline.set_last_Q()
-baseline.set_release_intervals()
-baseline.calc_obj_Q()
-baseline.set_fitness()
+    baseline.set_last_outflow()
+    baseline.set_max_flow()
+    baseline.set_last_Q()
+    baseline.set_release_intervals()
+    baseline.calc_obj_Q()
+    baseline.set_fitness()
 mass_balance_err = calc_mass_balance()
 print(f"Mass Balance Error: {mass_balance_err:0.2f}%")
 zero_Q = outfall.get_zero_Q()

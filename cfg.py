@@ -8,6 +8,8 @@ beta = 5 / 4
 manning = 0.012
 sim_days = 1
 sim_len = int(sim_days * 24 * 60 * 60 / dt)
+forecast_hr = 3
+forecast_len = int(forecast_hr * 60 * 60 / dt)
 t = np.linspace(0, sim_len, num=sim_len + 1)
 t = t.astype(int)
 hours = t * (dt / 60) / 60
