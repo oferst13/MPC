@@ -1,4 +1,5 @@
 from scipy import integrate
+import copy
 from tank import Tank
 from pipe import Pipe
 from node import Node
@@ -23,7 +24,11 @@ class Scenario:
         self.fitness = None
 
     def calc_obj_Q(self):
-        self.obj_Q = outfall.get_outflow_volume() / (Tank.get_last_overflow() * cfg.dt)
+        tot_out_vol = outfall.get_outflow_volume()
+        if tot_out_vol > 0:
+            self.obj_Q = tot_out_vol / (Tank.get_last_overflow() * cfg.dt)
+        else:
+            self.obj_Q = 0.0
 
     def set_fitness(self):
         to_min: float = 0
@@ -96,14 +101,13 @@ def run_model(duration):
 
 def fitness_func(release_vector, idx):
     for tank in Tank.all_tanks:
-        tank.reset_tank()
+        tank.reset_tank(cfg.forecast_len)
     for pipe in Pipe.all_pipes:
-        pipe.reset_pipe()
+        pipe.reset_pipe(cfg.forecast_len)
     release_array = np.reshape(release_vector, (len(Tank.all_tanks), baseline.release_intervals))
-    for num, tank in enumerate(Tank.all_tanks):
-        tank.set_releases(release_array[num, :])
-    run_model()
-    print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
+    Tank.set_releases_all(release_array)
+    run_model(cfg.forecast_len)
+    # print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     fitness = 1.0 / calc_fitness()
     return float(fitness)
 
@@ -180,7 +184,18 @@ for forecast_idx in range(1, num_forecast_files + 1):
     forecast_file = set_forecast_filename('09-10', forecast_idx)
     forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
     Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
-    baseline = Scenario()
+    try:
+        baseline
+    except NameError:
+        baseline = Scenario()
+    else:
+        baseline.reset_scenario()
+
+    for tank in Tank.all_tanks:
+        tank.reset_tank(cfg.forecast_len)
+    for pipe in Pipe.all_pipes:
+        pipe.reset_pipe(cfg.forecast_len)
+
     run_model(cfg.forecast_len)
 
     baseline.set_last_outflow()
@@ -189,15 +204,17 @@ for forecast_idx in range(1, num_forecast_files + 1):
     baseline.set_release_intervals()
     baseline.calc_obj_Q()
     baseline.set_fitness()
-mass_balance_err = calc_mass_balance()
-print(f"Mass Balance Error: {mass_balance_err:0.2f}%")
-zero_Q = outfall.get_zero_Q()
-last_overflow = Tank.get_last_overflow()
-obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
+    zero_Q = outfall.get_zero_Q()
+    last_overflow = Tank.get_last_overflow()
+    obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
 
-optim = input('optimize? Y/N')
-if optim == 'Y':
-    ga_instance = set_ga_instance()
-    ga_instance.run()
-# runtime.stop()
-print('d')
+    if baseline.obj_Q > 0.0001:
+        ga_instance = set_ga_instance()
+        ga_instance.run()
+        best_solution = np.reshape(ga_instance.best_solution()[0], (len(Tank.all_tanks), baseline.release_intervals))
+    else:
+        best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
+    Tank.reset_all()
+    Tank.set_releases_all(best_solution)
+
+    # ga_instance.

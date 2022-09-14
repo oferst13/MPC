@@ -32,7 +32,8 @@ class Tank:
         self.inflow_forecast = None
         self.inflow_actual = None
         self.daily_demands = None  # currently with dt only
-        self.reset_tank()
+        self.next_init_storage = None
+        self.reset_tank(cfg.forecast_len)
         Tank.all_tanks.append(self)
 
     @classmethod
@@ -80,13 +81,30 @@ class Tank:
 
     @classmethod
     def set_inflow_forecast_all(cls, forecast_rain):
-        for tank in Tank.all_tanks:
+        for tank in cls.all_tanks:
             tank.set_inflow_forecast(forecast_rain)
 
     @classmethod
     def set_daily_demands_all(cls, demands_pd):
-        for tank in Tank.all_tanks:
+        for tank in cls.all_tanks:
             tank.set_daily_demands(demands_pd)
+
+    @classmethod
+    def set_next_cycle(cls):
+        for tank in cls.all_tanks:
+            tank.next_init_storage = tank.cur_storage
+            tank.reset_tank(cfg.forecast_len)
+            tank.cur_storage = tank.next_init_storage
+
+    @classmethod
+    def set_releases_all(cls, rel_array):
+        for num, tank in enumerate(Tank.all_tanks):
+            tank.set_releases(rel_array[num, :])
+
+    @classmethod
+    def reset_all(cls):
+        for tank in Tank.all_tanks:
+            tank.reset_tank(cfg.forecast_len)
 
     def calc_release(self, timestep, last_overflow):
         if timestep <= last_overflow:
@@ -103,13 +121,13 @@ class Tank:
             self.release_volume[timestep] = copy.copy(self.cur_storage)
             self.cur_storage = 0.0
 
-    def reset_tank(self):
+    def reset_tank(self, duration):
         self.cur_storage = self.init_storage
-        self.overflows = np.zeros(cfg.sim_len)
-        self.releases = np.zeros(int(cfg.sim_len / (cfg.release_dt / cfg.dt)))
-        self.release_volume = np.zeros(cfg.sim_len)
-        self.rw_supply = np.zeros(cfg.sim_len)
-        self.all_storage = np.zeros(cfg.sim_len)
+        self.overflows = np.zeros(duration)
+        self.releases = np.zeros(int(duration / (cfg.release_dt / cfg.dt)))
+        self.release_volume = np.zeros(duration)
+        self.rw_supply = np.zeros(duration)
+        self.all_storage = np.zeros(duration)
         self.all_storage[0] = self.init_storage
 
     def set_inflow_forecast(self, rain):
@@ -138,3 +156,4 @@ class Tank:
             self.rw_supply[timestep] = copy.copy(self.cur_storage)
             self.cur_storage = 0
         self.all_storage[timestep] = copy.copy(self.cur_storage)
+

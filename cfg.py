@@ -3,12 +3,13 @@ import copy
 
 dt = 60
 rain_dt = 60 * 10
-release_dt = 60 * 60
+release_dt = 30 * 60
 beta = 5 / 4
 manning = 0.012
 sim_days = 1
 sim_len = int(sim_days * 24 * 60 * 60 / dt)
 forecast_hr = 3
+release_array = (forecast_hr * 60 * 60) / release_dt
 forecast_len = int(forecast_hr * 60 * 60 / dt)
 t = np.linspace(0, sim_len, num=sim_len + 1)
 t = t.astype(int)

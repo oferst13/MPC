@@ -15,7 +15,8 @@ class Pipe:
         self.alpha = (0.501 / cfg.manning) * (diameter ** (1 / 6)) * (slope ** 0.5)
         self.inlet_Q = None
         self.outlet_Q = None
-        self.reset_pipe()
+        self.first_Q = None
+        self.reset_pipe(cfg.forecast_len)
         Pipe.all_pipes.append(self)
 
     def calc_q_outlet(self, timestep):
@@ -32,6 +33,6 @@ class Pipe:
             tot_Q += pipe.inlet_Q[timestep] + pipe.outlet_Q[timestep]
         return tot_Q
 
-    def reset_pipe(self):
-        self.inlet_Q = np.zeros(cfg.sim_len, dtype=np.longfloat)
-        self.outlet_Q = np.zeros(cfg.sim_len, dtype=np.longfloat)
+    def reset_pipe(self, duration):
+        self.inlet_Q = np.zeros(duration, dtype=np.longfloat)
+        self.outlet_Q = np.zeros(duration, dtype=np.longfloat)
