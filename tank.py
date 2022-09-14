@@ -32,8 +32,8 @@ class Tank:
         self.inflow_forecast = None
         self.inflow_actual = None
         self.daily_demands = None  # currently with dt only
-        self.next_init_storage = None
-        self.reset_tank(cfg.forecast_len)
+        self.next_init_storage = self.init_storage
+        self.reset_tank(cfg.forecast_len, 'factory')
         Tank.all_tanks.append(self)
 
     @classmethod
@@ -102,9 +102,9 @@ class Tank:
             tank.set_releases(rel_array[num, :])
 
     @classmethod
-    def reset_all(cls):
+    def reset_all(cls, duration, reset_type):
         for tank in Tank.all_tanks:
-            tank.reset_tank(cfg.forecast_len)
+            tank.reset_tank(duration, reset_type)
 
     def calc_release(self, timestep, last_overflow):
         if timestep <= last_overflow:
@@ -121,14 +121,31 @@ class Tank:
             self.release_volume[timestep] = copy.copy(self.cur_storage)
             self.cur_storage = 0.0
 
-    def reset_tank(self, duration):
-        self.cur_storage = self.init_storage
+        '''
+        for tank in cls.all_tanks:
+            tank.next_init_storage = tank.cur_storage
+            tank.reset_tank(cfg.forecast_len)
+            tank.cur_storage = tank.next_init_storage
+        '''
+
+    def reset_tank(self, duration, reset_type):
+        reset_types = ['factory', 'cycle', 'iter']
+        if reset_type not in reset_types:
+            raise ValueError('Invalid reset type. Expected on of: %s' % reset_types)
         self.overflows = np.zeros(duration)
         self.releases = np.zeros(int(duration / (cfg.release_dt / cfg.dt)))
         self.release_volume = np.zeros(duration)
         self.rw_supply = np.zeros(duration)
         self.all_storage = np.zeros(duration)
-        self.all_storage[0] = self.init_storage
+        if reset_type == 'factory':
+            self.cur_storage = self.init_storage
+            self.all_storage[0] = self.init_storage
+        elif reset_type == 'cycle':
+            self.next_init_storage = self.cur_storage
+            self.all_storage[0] = self.next_init_storage
+        elif reset_type == 'iter':
+            self.cur_storage = self.next_init_storage
+            self.all_storage[0] = self.next_init_storage
 
     def set_inflow_forecast(self, rain):
         self.inflow_forecast = rain * self.roof / 1000
@@ -156,4 +173,3 @@ class Tank:
             self.rw_supply[timestep] = copy.copy(self.cur_storage)
             self.cur_storage = 0
         self.all_storage[timestep] = copy.copy(self.cur_storage)
-

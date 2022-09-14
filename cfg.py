@@ -20,7 +20,8 @@ forecast_hor = 3
 if collective_hor:
     prediction_hor = copy.copy(forecast_hor)
     control_hor = copy.copy(forecast_hor)
-sample_interval = 30 * 60
+sample_interval = 60 * 60
+sample_len = int(sample_interval / dt)
 control_interval = 30 * 60
 
 Cd = 0.5

@@ -101,7 +101,7 @@ def run_model(duration):
 
 def fitness_func(release_vector, idx):
     for tank in Tank.all_tanks:
-        tank.reset_tank(cfg.forecast_len)
+        tank.reset_tank(cfg.forecast_len, 'iter')
     for pipe in Pipe.all_pipes:
         pipe.reset_pipe(cfg.forecast_len)
     release_array = np.reshape(release_vector, (len(Tank.all_tanks), baseline.release_intervals))
@@ -192,10 +192,10 @@ for forecast_idx in range(1, num_forecast_files + 1):
         baseline.reset_scenario()
 
     for tank in Tank.all_tanks:
-        tank.reset_tank(cfg.forecast_len)
+        tank.reset_tank(cfg.forecast_len, 'cycle')
     for pipe in Pipe.all_pipes:
         pipe.reset_pipe(cfg.forecast_len)
-
+    print(tank1.cur_storage, tank2.cur_storage, tank3.cur_storage, tank4.cur_storage)
     run_model(cfg.forecast_len)
 
     baseline.set_last_outflow()
@@ -214,7 +214,8 @@ for forecast_idx in range(1, num_forecast_files + 1):
         best_solution = np.reshape(ga_instance.best_solution()[0], (len(Tank.all_tanks), baseline.release_intervals))
     else:
         best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
-    Tank.reset_all()
+    Tank.reset_all(cfg.forecast_len, 'iter')
     Tank.set_releases_all(best_solution)
-
+    run_model(cfg.sample_len)
+    print(tank1.cur_storage, tank2.cur_storage, tank3.cur_storage, tank4.cur_storage)
     # ga_instance.
