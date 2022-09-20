@@ -25,10 +25,15 @@ class Tank:
         self.orifice_A = ((self.standard_orifice / 2) ** 2) * np.pi
         self.footprint = ((self.standard_diameter / 2) ** 2) * np.pi
         self.overflows = None
+        self.overflows_act = None
         self.releases = None
+        self.releases_act = None
         self.release_volume = None
+        self.release_volume_act = None
         self.rw_supply = None
+        self.rw_supply_act = None
         self.all_storage = None
+        self.all_storage_act = None
         self.inflow_forecast = None
         self.inflow_actual = None
         self.daily_demands = None  # currently with dt only
