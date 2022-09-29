@@ -91,7 +91,7 @@ def run_model(duration):
             tank.tank_fill(i)
             tank.calc_release(i, baseline.last_outflow)
             tank.rw_use(i)
-        if i < 1 or (Pipe.get_tot_Q(i - 1) + Tank.get_tot_outflow(i)) < 1e-3:
+        if (Pipe.get_tot_Q(i - 1) + Tank.get_tot_outflow(i)) < 1e-3:
             continue
         for node in Node.all_nodes:
             node.handle_flow(i)
@@ -103,7 +103,7 @@ def fitness_func(release_vector, idx):
     for tank in Tank.all_tanks:
         tank.reset_tank(cfg.forecast_len, 'iter')
     for pipe in Pipe.all_pipes:
-        pipe.reset_pipe(cfg.forecast_len)
+        pipe.reset_pipe(cfg.forecast_len, 'iter')
     release_array = np.reshape(release_vector, (len(Tank.all_tanks), baseline.release_intervals))
     Tank.set_releases_all(release_array)
     run_model(cfg.forecast_len)
@@ -179,6 +179,7 @@ outfall = Node('outfall', [pipe6])
 demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)  # happens only once
 
+real_time = 0
 for forecast_idx in range(1, num_forecast_files + 1):
     # Create forecast - currently real rain only!
     forecast_file = set_forecast_filename('09-10', forecast_idx)
@@ -194,8 +195,7 @@ for forecast_idx in range(1, num_forecast_files + 1):
     for tank in Tank.all_tanks:
         tank.reset_tank(cfg.forecast_len, 'cycle')
     for pipe in Pipe.all_pipes:
-        pipe.reset_pipe(cfg.forecast_len)
-    print(tank1.cur_storage, tank2.cur_storage, tank3.cur_storage, tank4.cur_storage)
+        pipe.reset_pipe(cfg.forecast_len, 'cycle')
     run_model(cfg.forecast_len)
 
     baseline.set_last_outflow()
@@ -214,8 +214,15 @@ for forecast_idx in range(1, num_forecast_files + 1):
         best_solution = np.reshape(ga_instance.best_solution()[0], (len(Tank.all_tanks), baseline.release_intervals))
     else:
         best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
-    Tank.reset_all(cfg.forecast_len, 'iter')
+    if forecast_idx == 1:
+        best_solution_all = best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]
+    else:
+        best_solution_all = np.concatenate(
+            (best_solution_all, best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]), axis=1)
+    Tank.reset_all(cfg.sample_len, 'iter')
     Tank.set_releases_all(best_solution)
+    Pipe.reset_pipe_all(cfg.sample_len, 'iter')
     run_model(cfg.sample_len)
-    print(tank1.cur_storage, tank2.cur_storage, tank3.cur_storage, tank4.cur_storage)
+    real_time += cfg.sample_len
     # ga_instance.
+print('end')
