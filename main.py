@@ -49,6 +49,10 @@ class Scenario:
         self.last_Q = outfall.get_zero_Q()
 
 
+def set_forecast_idx(first, last, diff):
+    return np.arange(first, last, diff)
+
+
 def calc_fitness():
     to_min: float = 0
     for i in range(outfall.get_zero_Q()):
@@ -137,7 +141,7 @@ def set_ga_instance():
 # runtime.start()
 
 num_forecast_files = 26
-
+forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
 tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 180}
 tank3_dict = {'name': 'tank3', 'n_tanks': 25, 'init_storage': 0, 'roof': 8500, 'dwellers': 180}
@@ -180,7 +184,7 @@ demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)  # happens only once
 
 real_time = 0
-for forecast_idx in range(1, num_forecast_files + 1):
+for forecast_idx in forecast_indices:
     # Create forecast - currently real rain only!
     forecast_file = set_forecast_filename('09-10', forecast_idx)
     forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
@@ -226,3 +230,4 @@ for forecast_idx in range(1, num_forecast_files + 1):
     real_time += cfg.sample_len
     # ga_instance.
 print('end')
+print(best_solution_all)
