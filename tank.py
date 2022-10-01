@@ -111,6 +111,13 @@ class Tank:
         for tank in Tank.all_tanks:
             tank.reset_tank(duration, reset_type)
 
+    @classmethod
+    def get_rw_supply_all(cls):
+        tot_supply = 0.0
+        for tank in Tank.all_tanks:
+            tot_supply += tank.get_rw_supply()
+        return tot_supply
+
     def calc_release(self, timestep, last_overflow):
         if timestep <= last_overflow:
             release_deg = self.releases[timestep // int(cfg.release_dt / cfg.dt)]
@@ -178,3 +185,6 @@ class Tank:
             self.rw_supply[timestep] = copy.copy(self.cur_storage)
             self.cur_storage = 0
         self.all_storage[timestep] = copy.copy(self.cur_storage)
+
+    def get_rw_supply(self):
+        return sum(self.rw_supply)

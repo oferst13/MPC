@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-num_generations = 10
+num_generations = 200
 gene_space = [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 parent_selection = "rank"
 crossover_type = "uniform"

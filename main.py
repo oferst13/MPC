@@ -9,6 +9,7 @@ import math
 from timer import Timer
 import pygad
 import GA_params as ga
+import pickle
 
 
 class Scenario:
@@ -22,6 +23,8 @@ class Scenario:
         self.release_intervals = None
         self.obj_Q = None
         self.fitness = None
+        self.rw_supply = None
+        self.outfall_flow = None
 
     def calc_obj_Q(self):
         tot_out_vol = outfall.get_outflow_volume()
@@ -47,6 +50,22 @@ class Scenario:
 
     def set_last_Q(self):
         self.last_Q = outfall.get_zero_Q()
+
+    def set_rw_supply(self):
+        self.rw_supply = Tank.get_rw_supply_all()
+
+    def set_outfall_flow(self):
+        self.outfall_flow = copy.copy(pipe6.outlet_Q)
+
+    def set_atts(self):
+        self.set_last_outflow()
+        self.set_max_flow()
+        self.set_last_Q()
+        self.set_release_intervals()
+        self.calc_obj_Q()
+        self.set_fitness()
+        self.set_rw_supply()
+        self.set_outfall_flow()
 
 
 def set_forecast_idx(first, last, diff):
@@ -137,15 +156,16 @@ def set_ga_instance():
                        on_generation=on_gen)
     return ga_inst
 
+
 # runtime = Timer()
 # runtime.start()
 
 num_forecast_files = 26
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
-tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 180}
-tank3_dict = {'name': 'tank3', 'n_tanks': 25, 'init_storage': 0, 'roof': 8500, 'dwellers': 180}
-tank4_dict = {'name': 'tank4', 'n_tanks': 50, 'init_storage': 0, 'roof': 14000, 'dwellers': 180}
+tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 190}
+tank3_dict = {'name': 'tank3', 'n_tanks': 25, 'init_storage': 0, 'roof': 8500, 'dwellers': 155}
+tank4_dict = {'name': 'tank4', 'n_tanks': 50, 'init_storage': 0, 'roof': 14000, 'dwellers': 645}
 # tank1 = Tank('tank1', 30, 0, 9000, 180)
 # tank2 = Tank('tank2', 35, 0, 10000, 190)
 # tank3 = Tank('tank3', 25, 0, 8500, 150)
@@ -184,50 +204,75 @@ demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)  # happens only once
 
 real_time = 0
-for forecast_idx in forecast_indices:
-    # Create forecast - currently real rain only!
-    forecast_file = set_forecast_filename('09-10', forecast_idx)
-    forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
-    Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
+optimize = False
+if optimize:
+    for forecast_idx in forecast_indices:
+        # Create forecast - currently real rain only!
+        forecast_file = set_forecast_filename('09-10', forecast_idx)
+        forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
+        Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
+        try:
+            baseline
+        except NameError:
+            baseline = Scenario()
+        else:
+            baseline.reset_scenario()
+
+        for tank in Tank.all_tanks:
+            tank.reset_tank(cfg.forecast_len, 'cycle')
+        for pipe in Pipe.all_pipes:
+            pipe.reset_pipe(cfg.forecast_len, 'cycle')
+        run_model(cfg.forecast_len)
+
+        baseline.set_last_outflow()
+        baseline.set_max_flow()
+        baseline.set_last_Q()
+        baseline.set_release_intervals()
+        baseline.calc_obj_Q()
+        baseline.set_fitness()
+        zero_Q = outfall.get_zero_Q()
+        last_overflow = Tank.get_last_overflow()
+        obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
+
+        if baseline.obj_Q > 0.0001:
+            ga_instance = set_ga_instance()
+            ga_instance.run()
+            best_solution = np.reshape(ga_instance.best_solution()[0], (len(Tank.all_tanks), baseline.release_intervals))
+        else:
+            best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
+        if forecast_idx == 1:
+            best_solution_all = best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]
+        else:
+            best_solution_all = np.concatenate(
+                (best_solution_all, best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]), axis=1)
+        Tank.reset_all(cfg.sample_len, 'iter')
+        Tank.set_releases_all(best_solution)
+        Pipe.reset_pipe_all(cfg.sample_len, 'iter')
+        run_model(cfg.sample_len)
+        real_time += cfg.sample_len
+
+    print(best_solution_all)
+
+real_rain = True
+if real_rain:
+    Pipe.reset_pipe_all(cfg.sim_len, 'factory')
+    Tank.reset_all(cfg.sim_len, 'factory')
     try:
         baseline
     except NameError:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-
-    for tank in Tank.all_tanks:
-        tank.reset_tank(cfg.forecast_len, 'cycle')
-    for pipe in Pipe.all_pipes:
-        pipe.reset_pipe(cfg.forecast_len, 'cycle')
-    run_model(cfg.forecast_len)
-
-    baseline.set_last_outflow()
-    baseline.set_max_flow()
-    baseline.set_last_Q()
-    baseline.set_release_intervals()
-    baseline.calc_obj_Q()
-    baseline.set_fitness()
-    zero_Q = outfall.get_zero_Q()
-    last_overflow = Tank.get_last_overflow()
-    obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
-
-    if baseline.obj_Q > 0.0001:
-        ga_instance = set_ga_instance()
-        ga_instance.run()
-        best_solution = np.reshape(ga_instance.best_solution()[0], (len(Tank.all_tanks), baseline.release_intervals))
-    else:
-        best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
-    if forecast_idx == 1:
-        best_solution_all = best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]
-    else:
-        best_solution_all = np.concatenate(
-            (best_solution_all, best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]), axis=1)
-    Tank.reset_all(cfg.sample_len, 'iter')
-    Tank.set_releases_all(best_solution)
-    Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-    run_model(cfg.sample_len)
-    real_time += cfg.sample_len
-    # ga_instance.
+    forecast_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    Tank.set_inflow_forecast_all(forecast_rain)
+    run_model(cfg.sim_len)
+    print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
+    baseline.set_atts()
+    Pipe.reset_pipe_all(cfg.sim_len, 'factory')
+    Tank.reset_all(cfg.sim_len, 'factory')
+    with open('releases-200', 'rb') as f:
+        arr = pickle.load(f)
+    Tank.set_releases_all(arr)
+    run_model(cfg.sim_len)
+    print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
 print('end')
-print(best_solution_all)
