@@ -10,7 +10,7 @@ from timer import Timer
 import pygad
 import GA_params as ga
 import pickle
-
+from matplotlib import pyplot as plt
 
 class Scenario:
     def __init__(self):
@@ -106,9 +106,9 @@ def calc_mass_balance():
     return mass_balance
 
 
-def run_model(duration):
+def run_model(duration, rain):
     for i in range(duration):
-        if sum(forecast_rain[int(i // (cfg.rain_dt / cfg.dt)):-1]) + Tank.get_tot_storage() == 0:
+        if sum(rain[int(i // (cfg.rain_dt / cfg.dt)):-1]) + Tank.get_tot_storage() == 0:
             break  # this should break forecast run only!
         for tank in Tank.all_tanks:
             tank.tank_fill(i)
@@ -129,7 +129,7 @@ def fitness_func(release_vector, idx):
         pipe.reset_pipe(cfg.forecast_len, 'iter')
     release_array = np.reshape(release_vector, (len(Tank.all_tanks), baseline.release_intervals))
     Tank.set_releases_all(release_array)
-    run_model(cfg.forecast_len)
+    run_model(cfg.forecast_len, forecast_rain)
     # print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     fitness = 1.0 / calc_fitness()
     return float(fitness)
@@ -157,8 +157,55 @@ def set_ga_instance():
     return ga_inst
 
 
-# runtime = Timer()
-# runtime.start()
+def dump_to_file(thingy, filename):
+    with open(filename, 'wb') as file:
+        pickle.dump(thingy, file)
+
+
+def unload_from_file(filename):
+    with open(filename, 'rb') as file:
+        thingy = pickle.load(file)
+    return thingy
+
+
+def plot_compare(outflow1, outflow2, rainfile):
+    plt.rc('font', size=11)
+    plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
+    fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
+    fig.set_size_inches(6, 4)
+    rain_hours = np.linspace(0, int(cfg.sim_days * 24), int(cfg.sim_days * 24 * 3600 / cfg.rain_dt) + 1, dtype='longfloat')
+    axs[0].bar(rain_hours[np.nonzero(rain_hours <= plot_hours)],
+               act_rain[0:len(rain_hours[np.nonzero(rain_hours <= plot_hours)])],
+               width=cfg.rain_dt / 3600,
+               align='edge')
+    axs[0].spines['bottom'].set_visible(False)
+    # axs[0].axes.xaxis.set_visible(False)
+    axs[0].tick_params(labelbottom=False)
+    axs[0].set_xlim([0, plot_hours])
+    # axs[0].set_ylim([0,5])
+    axs[0].set_ylabel('Rain\n (mm/10-minutes)')
+    axs[0].invert_yaxis()
+    axs[0].grid(True)
+    axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
+                1000 * outflow1[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'r-',
+                label="Baseline")
+    axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
+                1000 * outflow2[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'b-',
+                label="Controlled")
+    # axs[1].plot(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)],
+                # 1000 * np.ones(
+                    # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
+                # 'g--', label="$Q_{objective}$")
+    axs[1].set_ylabel('Outfall Flow Rate (LPS)')
+    axs[1].set_xlabel('t (hours)')
+    axs[1].set_xlim([0, plot_hours])
+    axs[1].set_ylim(bottom=0)
+    axs[1].spines['top'].set_visible(False)
+    axs[1].grid(True)
+    fig.tight_layout(pad=0)
+    plt.legend()
+    plt.show()
+
 
 num_forecast_files = 26
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
@@ -222,14 +269,9 @@ if optimize:
             tank.reset_tank(cfg.forecast_len, 'cycle')
         for pipe in Pipe.all_pipes:
             pipe.reset_pipe(cfg.forecast_len, 'cycle')
-        run_model(cfg.forecast_len)
+        run_model(cfg.forecast_len, forecast_rain)
 
-        baseline.set_last_outflow()
-        baseline.set_max_flow()
-        baseline.set_last_Q()
-        baseline.set_release_intervals()
-        baseline.calc_obj_Q()
-        baseline.set_fitness()
+        baseline.set_atts()
         zero_Q = outfall.get_zero_Q()
         last_overflow = Tank.get_last_overflow()
         obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
@@ -237,7 +279,8 @@ if optimize:
         if baseline.obj_Q > 0.0001:
             ga_instance = set_ga_instance()
             ga_instance.run()
-            best_solution = np.reshape(ga_instance.best_solution()[0], (len(Tank.all_tanks), baseline.release_intervals))
+            best_solution = np.reshape(ga_instance.best_solution()[0],
+                                       (len(Tank.all_tanks), baseline.release_intervals))
         else:
             best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
         if forecast_idx == 1:
@@ -248,7 +291,10 @@ if optimize:
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-        run_model(cfg.sample_len)
+        period_file = copy.copy(forecast_file)  # to be changed if forecast available
+        period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
+        Tank.set_inflow_forecast_all(period_rain)
+        run_model(cfg.sample_len, period_rain)
         real_time += cfg.sample_len
 
     print(best_solution_all)
@@ -263,16 +309,17 @@ if real_rain:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-    forecast_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
-    Tank.set_inflow_forecast_all(forecast_rain)
-    run_model(cfg.sim_len)
+    act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    Tank.set_inflow_forecast_all(act_rain)
+    run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
-    with open('releases-200', 'rb') as f:
-        arr = pickle.load(f)
+    arr = unload_from_file('releases-1hr_dt')
     Tank.set_releases_all(arr)
-    run_model(cfg.sim_len)
+    run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
+    optimized = Scenario()
+    optimized.set_atts()
 print('end')

@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-num_generations = 200
+num_generations = 250
 gene_space = [0.25, 0.5, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
 parent_selection = "rank"
 crossover_type = "uniform"
@@ -9,7 +9,7 @@ crossover_prob = 0.4
 mutation_prob = 0.07
 mutation_by_replacement = True
 mutation_type = "random"
-stop_criteria = "saturate_200"
+stop_criteria = "saturate_150"
 
 
 def pop_init(release_interval, n_tanks):

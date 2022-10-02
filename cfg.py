@@ -3,7 +3,7 @@ import copy
 
 dt = 60
 rain_dt = 60 * 10
-release_dt = 30 * 60
+release_dt = 60 * 60
 beta = 5 / 4
 manning = 0.012
 sim_days = 1
@@ -23,7 +23,7 @@ if collective_hor:
     control_hor = copy.copy(forecast_hor)
 sample_interval = 60 * 60
 sample_len = int(sample_interval / dt)
-control_interval = 30 * 60
+control_interval = 60 * 60
 
 Cd = 0.5
 # Deterministic demands - Change if necessary!
