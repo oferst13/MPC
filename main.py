@@ -94,10 +94,13 @@ def set_rain_input(rainfile, rain_dt, duration):
     return rain
 
 
-def set_forecast_filename(prefix, idx):
+def set_rain_filename(prefix, idx, is_forecast):
     idx_str = str(idx)
     cur_filename = '-'.join([prefix, idx_str])
-    cur_filename = '.'.join([cur_filename, 'csv'])
+    if is_forecast:
+        cur_filename = 'rand.'.join([cur_filename, 'csv'])
+    else:
+        cur_filename = '.'.join([cur_filename, 'csv'])
     return cur_filename
 
 
@@ -168,7 +171,7 @@ def unload_from_file(filename):
     return thingy
 
 
-def plot_compare(outflow1, outflow2, rainfile):
+def plot_compare(outflow1, outflow2):
     plt.rc('font', size=11)
     plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
@@ -255,7 +258,7 @@ optimize = False
 if optimize:
     for forecast_idx in forecast_indices:
         # Create forecast - currently real rain only!
-        forecast_file = set_forecast_filename('09-10', forecast_idx)
+        forecast_file = set_rain_filename('09-10', forecast_idx, is_forecast=True)
         forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
@@ -291,7 +294,7 @@ if optimize:
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-        period_file = copy.copy(forecast_file)  # to be changed if forecast available
+        period_file = set_rain_filename('09-10', forecast_idx, is_forecast=False)
         period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(period_rain)
         run_model(cfg.sample_len, period_rain)
@@ -316,7 +319,7 @@ if real_rain:
     baseline.set_atts()
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
-    arr = unload_from_file('releases-1hr_dt')
+    arr = unload_from_file('with_forecast')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
