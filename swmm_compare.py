@@ -11,17 +11,21 @@ swmm_flow = np.zeros((4, bm.sim_len), dtype='float')
 tank_flow = np.zeros((3, bm.sim_len), dtype='float')
 overflows = source.overflows.copy()
 releases = source.releases_volume.copy()
-with pyswmm.Simulation('calib.inp') as sim:
-    tank1 = pyswmm.Nodes(sim)['Tank1']
-    tank2 = pyswmm.Nodes(sim)['Tank2']
-    tank3 = pyswmm.Nodes(sim)['Tank3']
-    out = pyswmm.Nodes(sim)['outlet']
-    j1 = pyswmm.Nodes(sim)['J1']
-    j2 = pyswmm.Nodes(sim)['J2']
-    j3 = pyswmm.Nodes(sim)['J3']
+with pyswmm.Simulation('clustered.inp') as sim:
+    tank1_s = pyswmm.Nodes(sim)['tank1']
+    tank2_s = pyswmm.Nodes(sim)['tank2']
+    tank3_s = pyswmm.Nodes(sim)['tank3']
+    tank4_s = pyswmm.Nodes(sim)['tank4']
+    outfall_s = pyswmm.Nodes(sim)['outfall']
+    node111_s = pyswmm.Nodes(sim)['111']
+    node11_s = pyswmm.Nodes(sim)['11']
+    node12_s = pyswmm.Nodes(sim)['12']
+    node11_s = pyswmm.Nodes(sim)['1']
+    node21_s = pyswmm.Nodes(sim)['21']
+    node2_s = pyswmm.Nodes(sim)['2']
     sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
     sim.end_time = datetime(2021, 1, 2)
-    sim.step_advance(30)
+    sim.step_advance(cfg.dt)
     i = 0
     for step in sim:
         tank_flow[0, i] = 1000*(overflows[0, i] + releases[0, i]) / bm.dt

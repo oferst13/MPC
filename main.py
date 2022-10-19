@@ -11,6 +11,7 @@ import pygad
 import GA_params as ga
 import pickle
 from matplotlib import pyplot as plt
+import pyswmm
 
 class Scenario:
     def __init__(self):
@@ -197,7 +198,7 @@ def plot_compare(outflow1, outflow2):
                 label="Controlled")
     # axs[1].plot(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)],
                 # 1000 * np.ones(
-                    # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
+                # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
                 # 'g--', label="$Q_{objective}$")
     axs[1].set_ylabel('Outfall Flow Rate (LPS)')
     axs[1].set_xlabel('t (hours)')
@@ -209,6 +210,9 @@ def plot_compare(outflow1, outflow2):
     plt.legend()
     plt.show()
 
+
+def swmm_compare():
+    pass
 
 num_forecast_files = 26
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
