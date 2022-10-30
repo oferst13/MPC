@@ -12,6 +12,7 @@ import GA_params as ga
 import pickle
 from matplotlib import pyplot as plt
 import pyswmm
+from datetime import datetime
 
 class Scenario:
     def __init__(self):
@@ -211,8 +212,38 @@ def plot_compare(outflow1, outflow2):
     plt.show()
 
 
-def swmm_compare():
-    pass
+def swmm_compare():  # has to be coded explicitly :(
+    outfall_s_flow = np.zeros(len(pipe6.outlet_Q))
+    with pyswmm.Simulation('clustered.inp') as sim:
+        tank1_s = pyswmm.Nodes(sim)['tank1']
+        tank2_s = pyswmm.Nodes(sim)['tank2']
+        tank3_s = pyswmm.Nodes(sim)['tank3']
+        tank4_s = pyswmm.Nodes(sim)['tank4']
+        outfall_s = pyswmm.Nodes(sim)['outfall']
+        node111_s = pyswmm.Nodes(sim)['111']
+        node11_s = pyswmm.Nodes(sim)['11']
+        node12_s = pyswmm.Nodes(sim)['12']
+        node11_s = pyswmm.Nodes(sim)['1']
+        node21_s = pyswmm.Nodes(sim)['21']
+        node2_s = pyswmm.Nodes(sim)['2']
+        sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
+        sim.end_time = datetime(2021, 1, 2)
+        sim.step_advance(cfg.dt)
+        i = 0
+        tank_list = [tank1_s, tank2_s, tank3_s, tank4_s]
+        for step in sim:
+            for idx, tank_node in enumerate(tank_list):
+                inflow = Tank.all_tanks[idx].get_outflow(i) * 1000
+                if inflow > 0:
+                    print(inflow)
+                tank_node.generated_inflow(float(inflow))
+            outfall_s_flow[i] = outfall_s.total_inflow
+            i += 1
+    plt.plot(cfg.hours[:len(pipe6.outlet_Q)], pipe6.outlet_Q, label='kinematic')
+    plt.plot(cfg.hours[:len(pipe6.outlet_Q)], 0.001 * outfall_s_flow, label='dynamic')
+    plt.legend()
+    plt.show()
+
 
 num_forecast_files = 26
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
@@ -329,4 +360,5 @@ if real_rain:
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
+swmm_compare()
 print('end')

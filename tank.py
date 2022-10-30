@@ -188,3 +188,6 @@ class Tank:
 
     def get_rw_supply(self):
         return sum(self.rw_supply)
+
+    def get_outflow(self, timestep):
+        return (self.overflows[timestep] + self.release_volume[timestep]) / cfg.dt
