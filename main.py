@@ -212,9 +212,9 @@ def plot_compare(outflow1, outflow2):
     plt.show()
 
 
-def swmm_compare():  # has to be coded explicitly :(
+def swmm_compare(rain):  # has to be coded explicitly :(
     outfall_s_flow = np.zeros(len(pipe6.outlet_Q))
-    with pyswmm.Simulation('clustered.inp') as sim:
+    with pyswmm.Simulation('clustered-no_roof.inp') as sim:
         tank1_s = pyswmm.Nodes(sim)['tank1']
         tank2_s = pyswmm.Nodes(sim)['tank2']
         tank3_s = pyswmm.Nodes(sim)['tank3']
@@ -226,6 +226,7 @@ def swmm_compare():  # has to be coded explicitly :(
         node11_s = pyswmm.Nodes(sim)['1']
         node21_s = pyswmm.Nodes(sim)['21']
         node2_s = pyswmm.Nodes(sim)['2']
+        rg1 = pyswmm.RainGages(sim)['RG1']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
         sim.end_time = datetime(2021, 1, 2)
         sim.step_advance(cfg.dt)
@@ -234,9 +235,10 @@ def swmm_compare():  # has to be coded explicitly :(
         for step in sim:
             for idx, tank_node in enumerate(tank_list):
                 inflow = Tank.all_tanks[idx].get_outflow(i) * 1000
-                if inflow > 0:
-                    print(inflow)
+                # if inflow > 0:
+                    # print(inflow)
                 tank_node.generated_inflow(float(inflow))
+            rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
             outfall_s_flow[i] = outfall_s.total_inflow
             i += 1
     plt.plot(cfg.hours[:len(pipe6.outlet_Q)], pipe6.outlet_Q, label='kinematic')
@@ -360,5 +362,5 @@ if real_rain:
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-swmm_compare()
+swmm_compare(act_rain)
 print('end')
