@@ -62,20 +62,20 @@ RG1              VOLUME    0:10     1.0      TIMESERIES 09-10
 [SUBAREAS]
 ;;Subcatchment   N-Imperv   N-Perv     S-Imperv   S-Perv     PctZero    RouteTo    PctRouted 
 ;;-------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
-31               0.014      0.16       0.5        0.9        0          PERVIOUS   100       
-32               0.014      0.16       0.5        0.9        0          IMPERVIOUS 100       
-33               0.014      0.16       0.5        0.9        0          IMPERVIOUS 100       
-34               0.014      0.16       0.5        0.9        0          IMPERVIOUS 100       
-35               0.014      0.16       0.5        0.9        0          IMPERVIOUS 100       
+31               0.014      0.16       2.5        5          0          PERVIOUS   100       
+32               0.014      0.16       2.5        5          0          IMPERVIOUS 100       
+33               0.014      0.16       2.5        5          0          IMPERVIOUS 100       
+34               0.014      0.16       2.5        5          0          IMPERVIOUS 100       
+35               0.014      0.16       2.5        5          0          IMPERVIOUS 100       
 
 [INFILTRATION]
 ;;Subcatchment   Param1     Param2     Param3     Param4     Param5    
 ;;-------------- ---------- ---------- ---------- ---------- ----------
-31               7          0.5        4          7          0         
-32               7          0.5        4          7          0         
-33               7          0.5        4          7          0         
-34               7          0.5        4          7          0         
-35               7          0.5        4          7          0         
+31               10         2          6          6          0         
+32               10         2          6          6          0         
+33               10         2          6          6          0         
+34               10         2          6          6          0         
+35               10         2          6          6          0         
 
 [JUNCTIONS]
 ;;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   
@@ -124,6 +124,14 @@ outlet2          CIRCULAR     0.4              0          0          0          
 outlet3          CIRCULAR     0.4              0          0          0          1                    
 outlet4          CIRCULAR     0.4              0          0          0          1                    
 
+[INFLOWS]
+;;Node           Constituent      Time Series      Type     Mfactor  Sfactor  Baseline Pattern
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+tank1            FLOW             t1               FLOW     1.0      1.0              
+tank2            FLOW             t2               FLOW     1.0      1.0              
+tank3            FLOW             t3               FLOW     1.0      1.0              
+tank4            FLOW             t4               FLOW     1.0      1.0              
+
 [TIMESERIES]
 ;;Name           Date       Time       Value     
 ;;-------------- ---------- ---------- ----------
@@ -134,6 +142,14 @@ evap             02/14/2017 00:00      1.7
 evap             02/15/2017 00:00      1.9       
 ;
 09-10            FILE "09-10-time.dat"
+;
+t2               FILE "tank2.dat"
+;
+t3               FILE "tank3.dat"
+;
+t4               FILE "tank4.dat"
+;
+t1               FILE "tank1.dat"
 
 [REPORT]
 ;;Reporting Options

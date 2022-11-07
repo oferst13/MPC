@@ -14,6 +14,7 @@ from matplotlib import pyplot as plt
 import pyswmm
 from datetime import datetime
 
+
 class Scenario:
     def __init__(self):
         self.reset_scenario()
@@ -178,7 +179,8 @@ def plot_compare(outflow1, outflow2):
     plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
     fig.set_size_inches(6, 4)
-    rain_hours = np.linspace(0, int(cfg.sim_days * 24), int(cfg.sim_days * 24 * 3600 / cfg.rain_dt) + 1, dtype='longfloat')
+    rain_hours = np.linspace(0, int(cfg.sim_days * 24), int(cfg.sim_days * 24 * 3600 / cfg.rain_dt) + 1,
+                             dtype='longfloat')
     axs[0].bar(rain_hours[np.nonzero(rain_hours <= plot_hours)],
                act_rain[0:len(rain_hours[np.nonzero(rain_hours <= plot_hours)])],
                width=cfg.rain_dt / 3600,
@@ -198,9 +200,9 @@ def plot_compare(outflow1, outflow2):
                 1000 * outflow2[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'b-',
                 label="Controlled")
     # axs[1].plot(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)],
-                # 1000 * np.ones(
-                # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
-                # 'g--', label="$Q_{objective}$")
+    # 1000 * np.ones(
+    # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
+    # 'g--', label="$Q_{objective}$")
     axs[1].set_ylabel('Outfall Flow Rate (LPS)')
     axs[1].set_xlabel('t (hours)')
     axs[1].set_xlim([0, plot_hours])
@@ -235,8 +237,8 @@ def swmm_compare(rain):  # has to be coded explicitly :(
         for step in sim:
             for idx, tank_node in enumerate(tank_list):
                 inflow = Tank.all_tanks[idx].get_outflow(i) * 1000
-                # if inflow > 0:
-                    # print(inflow)
+                #if inflow > 0:
+                    #print(inflow)
                 tank_node.generated_inflow(float(inflow))
             rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
             outfall_s_flow[i] = outfall_s.total_inflow
@@ -354,6 +356,7 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
+    swmm_compare(act_rain)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     arr = unload_from_file('with_forecast')
