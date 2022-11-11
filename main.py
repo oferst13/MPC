@@ -231,7 +231,7 @@ def swmm_run(rain, duration, is_forecast=True):
             rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
             outfall_s_flow[i] = outfall_s.total_inflow
             i += 1
-            sim.step_advance(cfg.dt)
+            #sim.step_advance(cfg.dt)
             print(sim.current_time)
     return outfall_s_flow
 def swmm_compare(rain):  # has to be coded explicitly :(
@@ -256,8 +256,9 @@ def swmm_compare(rain):  # has to be coded explicitly :(
                 tank_node.generated_inflow(float(inflow))
             rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
             outfall_s_flow[i] = outfall_s.total_inflow
+            if (i - 1) % cfg.dt == 0:
+                print(sim.current_time)
             i += 1
-            print(sim.current_time)
     plt.plot(cfg.hours[:len(pipe6.outlet_Q)], pipe6.outlet_Q, label='kinematic')
     plt.plot(cfg.hours[:len(pipe6.outlet_Q)], 0.001 * outfall_s_flow, label='dynamic')
     plt.legend()
@@ -368,11 +369,11 @@ if real_rain:
         baseline.reset_scenario()
     act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
-    swmm_run(act_rain, 3)
     run_model(cfg.sim_len, act_rain)
+    #swmm_run(act_rain, 3)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
-    #swmm_compare(act_rain)
+    swmm_compare(act_rain)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     arr = unload_from_file('with_forecast')
@@ -381,5 +382,5 @@ if real_rain:
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-#swmm_compare(act_rain)
+swmm_compare(act_rain)
 print('end')

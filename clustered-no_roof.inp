@@ -20,11 +20,11 @@ END_TIME             08:00:00
 SWEEP_START          01/01
 SWEEP_END            12/31
 DRY_DAYS             0
-REPORT_STEP          00:01:00
-WET_STEP             00:01:00
-DRY_STEP             01:00:00
-ROUTING_STEP         0:01:00 
-RULE_STEP            00:00:00
+REPORT_STEP          00:00:30
+WET_STEP             00:00:30
+DRY_STEP             00:01:00
+ROUTING_STEP         0:00:30 
+RULE_STEP            00:00:30
 
 INERTIAL_DAMPING     PARTIAL
 NORMAL_FLOW_LIMITED  BOTH
@@ -101,7 +101,7 @@ outfall          42         FREE                        NO
 ;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
 pipe6            2                outfall          200        0.012      0          0          0          0         
 pipe3            12               1                400        0.012      0          0          0          0         
-pipe5            21               2                300        0.013      0          0          0          0         
+pipe5            21               2                300        0.012      0          0          0          0         
 pipe4            1                2                400        0.012      0          0          0          0         
 pipe2            11               1                500        0.012      0          0          0          0         
 pipe1            111              11               400        0.012      0          0          0          0         
