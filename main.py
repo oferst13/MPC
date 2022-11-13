@@ -214,7 +214,7 @@ def plot_compare(outflow1, outflow2):
     plt.show()
 
 def swmm_run(rain, duration, is_forecast=True):
-    outfall_s_flow = np.zeros(len(pipe6.outlet_Q))
+    outfall_s_flow = np.zeros(int(duration * 3600 / cfg.dt))
     if is_forecast:
         filename = 'clustered-no_roof.inp'
     else:
@@ -224,7 +224,7 @@ def swmm_run(rain, duration, is_forecast=True):
         outfall_s = pyswmm.Nodes(sim)['outfall']
         rg1 = pyswmm.RainGages(sim)['RG1']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, duration)
+        sim.end_time = datetime(2021, 1, 1, duration, 1)
 
         i = 0
         for step in sim:
@@ -370,7 +370,7 @@ if real_rain:
     act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
     run_model(cfg.sim_len, act_rain)
-    #swmm_run(act_rain, 3)
+    swmm_run(act_rain, 3)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
     swmm_compare(act_rain)
