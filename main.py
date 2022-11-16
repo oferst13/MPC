@@ -78,6 +78,12 @@ class Scenario:
 def set_forecast_idx(first, last, diff):
     return np.arange(first, last, diff)
 
+def calc_fitness_swmm():
+    to_min: float = 0
+    for i in range(outfall.get_zero_Q()):
+        to_min += abs(outfall.get_flow(i) - baseline.obj_Q)
+    return to_min
+
 
 def calc_fitness():
     to_min: float = 0
@@ -178,7 +184,7 @@ def unload_from_file(filename):
     return thingy
 
 
-def plot_compare(outflow1, outflow2):
+def plot_compare(outflow1, outflow2, units):
     plt.rc('font', size=11)
     plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
@@ -198,16 +204,19 @@ def plot_compare(outflow1, outflow2):
     axs[0].invert_yaxis()
     axs[0].grid(True)
     axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
-                1000 * outflow1[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'r-',
+                outflow1[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'r-',
                 label="Baseline")
     axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
-                1000 * outflow2[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'b-',
+                outflow2[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'b-',
                 label="Controlled")
     # axs[1].plot(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)],
     # 1000 * np.ones(
     # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
     # 'g--', label="$Q_{objective}$")
-    axs[1].set_ylabel('Outfall Flow Rate (LPS)')
+    if units == 'CMS':
+        axs[1].set_ylabel('Outfall Flow Rate ' + r'($\frac{m^3}{s}$)')
+    else:
+        axs[1].set_ylabel('Outfall Flow Rate (LPS)')
     axs[1].set_xlabel('t (hours)')
     axs[1].set_xlim([0, plot_hours])
     axs[1].set_ylim(bottom=0)
@@ -264,7 +273,7 @@ def swmm_compare(rain):  # has to be coded explicitly :(
                 # if inflow > 0:
                 # print(inflow)
                 tank_node.generated_inflow(float(inflow))
-            rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
+            #rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
             outfall_s_flow[i] = outfall_s.total_inflow
             if (i - 1) % cfg.dt == 0:
                 print(sim.current_time)
@@ -321,7 +330,7 @@ def plot_tank_storage():
     plt.show()
 
 
-num_forecast_files = 26
+num_forecast_files = cfg.forecast_files
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
 tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 190}
@@ -428,7 +437,7 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
-    # baseline.swmm_flow = swmm_run(act_rain, 18)
+    baseline.swmm_flow = swmm_run(act_rain, 18)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     arr = unload_from_file('with_forecast')

@@ -12,6 +12,7 @@ forecast_hr = 3
 forecast_interval = 30 * 60
 release_array = (forecast_hr * 60 * 60) / release_dt
 forecast_len = int(forecast_hr * 60 * 60 / dt)
+forecast_files = 26
 t = np.linspace(0, sim_len, num=sim_len + 1)
 t = t.astype(int)
 hours = t * (dt / 60) / 60
