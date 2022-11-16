@@ -275,6 +275,52 @@ def swmm_compare(rain):  # has to be coded explicitly :(
     plt.show()
 
 
+def plot_release_policy(release_arr):
+    plt.figure()
+    plt.rc('font', size=11)
+    plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
+    t = np.arange(plot_hours + 1)
+    releases_2plot = np.c_[release_arr, np.zeros((len(Tank.all_tanks), int(plot_hours - release_arr.shape[1] + 1)))]
+    ls = ['-', '-.', ':', '--']
+    cl = ['xkcd:dark sky blue', 'r', 'xkcd:goldenrod', 'xkcd:kiwi']
+    for gg, graph in enumerate(releases_2plot):
+        plt.step(t, graph * 10, cl[gg], where='post', label=f'Tank {gg + 1}', linewidth=4 - 0.7 * gg, linestyle=ls[gg])
+    fig = plt.gcf()
+    fig.set_size_inches(6, 3.75)
+    fig.tight_layout(pad=1.5)
+    plt.legend(loc='center right')
+    plt.xlabel('t (hours)')
+    plt.ylabel('Valve Opening %')
+    plt.xlim([0, plot_hours])
+    plt.show()
+
+
+def plot_tank_storage():
+    plt.figure()
+    plt.rc('font', size=11)
+    plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
+    t = np.arange(plot_hours + 1)
+    plot_storage = np.zeros((len(Tank.all_tanks), cfg.sim_len))
+    for idx, tnk in enumerate(Tank.all_tanks):
+        plot_storage[idx] = 100 * (tnk.all_storage / tnk.tank_size)
+    ls = ['-', '-.', ':', '--']
+    cl = ['xkcd:dark sky blue', 'r', 'xkcd:goldenrod', 'xkcd:kiwi']
+    for gg, graph in enumerate(plot_storage):
+        plt.plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)], graph[np.nonzero(cfg.hours <= plot_hours)],
+                 cl[gg]
+                 , label=f'Tank {gg + 1}', linewidth=4 - 0.7 * gg, linestyle=ls[gg])
+    fig = plt.gcf()
+    # plt.xticks(np.arange(0, plot_hours+1, 1.0))
+    fig.set_size_inches(6, 3.75)
+    fig.tight_layout(pad=1.5)
+    plt.legend(loc='center right')
+    # , bbox_to_anchor=(0.6,0))
+    plt.xlabel('t (hours)')
+    plt.ylabel('Tank storage %')
+    plt.xlim([0, plot_hours])
+    plt.show()
+
+
 num_forecast_files = 26
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
@@ -382,7 +428,7 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
-    baseline.swmm_flow = swmm_run(act_rain, 18)
+    # baseline.swmm_flow = swmm_run(act_rain, 18)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     arr = unload_from_file('with_forecast')
