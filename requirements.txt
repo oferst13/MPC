@@ -5,3 +5,4 @@ geneticalgorithm>=1.0.2
 linetimer>=0.1.4
 pyswmm>=1.0.1
 pygad>=2.17.0
+pandas>=1.5.1
