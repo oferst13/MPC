@@ -330,6 +330,21 @@ def plot_tank_storage():
     plt.show()
 
 
+def rain_compare():
+    for i in range(1, cfg.forecast_files + 1, 2):
+        idx = str(i)
+        input_filename = '-'.join(['09-10', idx])
+        input_real = ''.join([input_filename, '.csv'])
+        input_fore = ''.join([input_filename, 'swap.csv'])
+        rrain = np.genfromtxt(input_real, delimiter=',')
+        fore_rain = np.genfromtxt(input_fore, delimiter=',')
+        x = np.arange(len(rrain))
+        plt.figure()
+        bar1 = plt.bar(x - 0.25, rrain, 0.5)
+        bar2 = plt.bar(x + 0.25, fore_rain, 0.5)
+        plt.legend((bar1, bar2), ('real', 'forecast'))
+        plt.show()
+
 num_forecast_files = cfg.forecast_files
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
@@ -437,7 +452,6 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
-    baseline.swmm_flow = swmm_run(act_rain, 18)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     arr = unload_from_file('with_forecast')
@@ -446,5 +460,4 @@ if real_rain:
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-    optimized.swmm_flow = swmm_run(act_rain, 18)
 print('end')
