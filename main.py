@@ -29,6 +29,7 @@ class Scenario:
         self.rw_supply = None
         self.outfall_flow = None
         self.swmm_flow = None
+        self.available_water = None
 
     def calc_obj_Q(self):
         tot_out_vol = outfall.get_outflow_volume()
@@ -70,9 +71,13 @@ class Scenario:
         self.set_fitness()
         self.set_rw_supply()
         self.set_outfall_flow()
+        self.set_available_water()
 
     def set_swmm_flow(self, flow):
         self.swmm_flow = flow
+
+    def set_available_water(self):
+        self.available_water = self.rw_supply + Tank.get_tot_storage()
 
 
 def set_forecast_idx(first, last, diff):
@@ -111,7 +116,7 @@ def set_rain_filename(prefix, idx, is_forecast):
     idx_str = str(idx)
     cur_filename = '-'.join([prefix, idx_str])
     if is_forecast:
-        cur_filename = 'rand.'.join([cur_filename, 'csv'])
+        cur_filename = 'swap.'.join([cur_filename, 'csv'])
     else:
         cur_filename = '.'.join([cur_filename, 'csv'])
     return cur_filename
@@ -186,7 +191,8 @@ def unload_from_file(filename):
 
 def plot_compare(outflow1, outflow2, units):
     plt.rc('font', size=11)
-    plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
+    last_q = np.max(np.nonzero(outflow1 > 0.5))
+    plot_hours = np.ceil(last_q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
     fig.set_size_inches(6, 4)
     rain_hours = np.linspace(0, int(cfg.sim_days * 24), int(cfg.sim_days * 24 * 3600 / cfg.rain_dt) + 1,
@@ -288,8 +294,8 @@ def plot_release_policy(release_arr):
     plt.figure()
     plt.rc('font', size=11)
     plot_hours = np.ceil(baseline.last_Q * cfg.dt / 3600)
-    t = np.arange(plot_hours + 1)
-    releases_2plot = np.c_[release_arr, np.zeros((len(Tank.all_tanks), int(plot_hours - release_arr.shape[1] + 1)))]
+    t = np.arange(0, plot_hours + 1, cfg.control_interval / 3600)
+    releases_2plot = np.c_[release_arr, np.zeros((len(Tank.all_tanks), int(len(t) - release_arr.shape[1])))]
     ls = ['-', '-.', ':', '--']
     cl = ['xkcd:dark sky blue', 'r', 'xkcd:goldenrod', 'xkcd:kiwi']
     for gg, graph in enumerate(releases_2plot):
@@ -412,7 +418,7 @@ if optimize:
         baseline.set_atts()
         zero_Q = outfall.get_zero_Q()
         last_overflow = Tank.get_last_overflow()
-        obj_Q = integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q]) / (last_overflow)
+        obj_Q = (integrate.simps(pipe6.outlet_Q[:zero_Q], cfg.t[:zero_Q])) / cfg.forecast_len
 
         if baseline.obj_Q > 0.0001:
             ga_instance = set_ga_instance()
@@ -452,12 +458,14 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
+    baseline.swmm_flow = swmm_run(act_rain, 19)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
-    arr = unload_from_file('with_forecast')
+    arr = unload_from_file('swap_0.5hr')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
+    optimized.swmm_flow = swmm_run(act_rain, 19)
 print('end')

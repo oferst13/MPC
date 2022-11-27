@@ -9,7 +9,7 @@ crossover_prob = 0.4
 mutation_prob = 0.07
 mutation_by_replacement = True
 mutation_type = "random"
-stop_criteria = "saturate_150"
+stop_criteria = "saturate_75"
 
 
 def pop_init(release_interval, n_tanks):
