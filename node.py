@@ -7,14 +7,16 @@ import cfg
 class Node:
     all_nodes = []
 
-    def __init__(self, name, receiving_from=[], giving_to=[], tank_node=False):
+    def __init__(self, name, receiving_from=[], giving_to=[], tank_node=False, lat_node=False):
         self.name = name
         self.receiving_from = receiving_from
         self.giving_to = giving_to
         self.tank_node = tank_node
+        self.lat_node = lat_node
+        self.lat_flows = None
         Node.all_nodes.append(self)
 
-    def handle_flow(self, timestep):
+    def handle_flow(self, timestep, swmm=False):
         inflow: float = 0
         if self.tank_node:
             for tank in self.receiving_from:
@@ -52,3 +54,6 @@ class Node:
         for pipe in self.receiving_from:
             inflow += pipe.outlet_Q[timestep]
         return inflow
+
+    def set_lat_flows(self, timestep, flows):
+        self.lat_flows = flows

@@ -259,6 +259,31 @@ def swmm_run(rain, duration):
     return outfall_s_flow
 
 
+def swmm_run_inflows(rain, duration):
+    filename = 'clustered-no_roof.inp'
+    with pyswmm.Simulation(filename) as sim:
+        sim.step_advance(cfg.dt)
+        outfall_s = pyswmm.Nodes(sim)['outfall']
+        rg1 = pyswmm.RainGages(sim)['RG1']
+        j111 = pyswmm.Nodes(sim)['111']
+        j11 = pyswmm.Nodes(sim)['11']
+        j12 = pyswmm.Nodes(sim)['12']
+        j21 = pyswmm.Nodes(sim)['21']
+        sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
+        sim.end_time = datetime(2021, 1, 1, duration, 1)
+        node_list = [j111, j11, j12, j21, outfall_s]
+        node_inflows = np.zeros((len(node_list), int(duration * 3600 / cfg.dt)))
+        i = 0
+        for step in sim:
+            rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
+            for idx, node in enumerate(node_list):
+                node_inflows[idx, i] = node.lateral_inflow
+            # outfall_s_flow[step] = outfall_s.total_inflow
+            i += 1
+            print(sim.current_time, i)
+    return node_inflows
+
+
 def swmm_compare(rain):  # has to be coded explicitly :(
     outfall_s_flow = np.zeros(len(pipe6.outlet_Q))
     with pyswmm.Simulation('clustered-no_roof.inp') as sim:
