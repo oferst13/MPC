@@ -60,7 +60,12 @@ class Scenario:
         self.rw_supply = Tank.get_rw_supply_all()
 
     def set_outfall_flow(self):
-        self.outfall_flow = copy.copy(pipe6.outlet_Q)
+        if outfall.lat_flows is None:
+            self.outfall_flow = copy.copy(pipe6.outlet_Q)
+        else:
+            self.outfall_flow = pipe6.outlet_Q + np.pad(outfall.lat_flows, (0,
+                                                                            len(pipe6.outlet_Q) - len(outfall.lat_flows)),
+                                                                            'constant')
 
     def set_atts(self):
         self.set_last_outflow()
@@ -82,6 +87,7 @@ class Scenario:
 
 def set_forecast_idx(first, last, diff):
     return np.arange(first, last, diff)
+
 
 def calc_fitness_swmm():
     to_min: float = 0
@@ -127,7 +133,7 @@ def calc_mass_balance():
     return mass_balance
 
 
-def run_model(duration, rain):
+def run_model(duration, rain, swmm=False):
     for i in range(duration):
         if sum(rain[int(i // (cfg.rain_dt / cfg.dt)):-1]) + Tank.get_tot_storage() == 0:
             break  # this should break forecast run only!
@@ -138,7 +144,7 @@ def run_model(duration, rain):
         if (Pipe.get_tot_Q(i - 1) + Tank.get_tot_outflow(i)) < 1e-3:
             continue
         for node in Node.all_nodes:
-            node.handle_flow(i)
+            node.handle_flow(i, swmm)
             for pipe in node.giving_to:
                 pipe.calc_q_outlet(i)
 
@@ -191,7 +197,7 @@ def unload_from_file(filename):
 
 def plot_compare(outflow1, outflow2, units):
     plt.rc('font', size=11)
-    last_q = np.max(np.nonzero(outflow1 > 0.5))
+    last_q = np.max(np.nonzero(outflow1 > 0.0005))
     plot_hours = np.ceil(last_q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
     fig.set_size_inches(6, 4)
@@ -233,8 +239,8 @@ def plot_compare(outflow1, outflow2, units):
     plt.show()
 
 
-def swmm_run(rain, duration):
-    outfall_s_flow = np.zeros(int(duration * 3600 / cfg.dt))
+def swmm_run(rain, hours):
+    outfall_s_flow = np.zeros(int(hours * 3600 / cfg.dt))
     filename = 'clustered-no_roof.inp'
     with pyswmm.Simulation(filename) as sim:
         sim.step_advance(cfg.dt)
@@ -245,7 +251,7 @@ def swmm_run(rain, duration):
         tank3_s = pyswmm.Nodes(sim)['tank3']
         tank4_s = pyswmm.Nodes(sim)['tank4']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, duration, 1)
+        sim.end_time = datetime(2021, 1, 1, hours, 1)
         tank_list = [tank1_s, tank2_s, tank3_s, tank4_s]
         i = 0
         for step in sim:
@@ -259,7 +265,7 @@ def swmm_run(rain, duration):
     return outfall_s_flow
 
 
-def swmm_run_inflows(rain, duration):
+def swmm_run_inflows(rain, hours):
     filename = 'clustered-no_roof.inp'
     with pyswmm.Simulation(filename) as sim:
         sim.step_advance(cfg.dt)
@@ -270,9 +276,9 @@ def swmm_run_inflows(rain, duration):
         j12 = pyswmm.Nodes(sim)['12']
         j21 = pyswmm.Nodes(sim)['21']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, duration, 1)
+        sim.end_time = datetime(2021, 1, 1, hours, 1)
         node_list = [j111, j11, j12, j21, outfall_s]
-        node_inflows = np.zeros((len(node_list), int(duration * 3600 / cfg.dt)))
+        node_inflows = np.zeros((len(node_list), int(hours * 3600 / cfg.dt)))
         i = 0
         for step in sim:
             rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
@@ -280,7 +286,7 @@ def swmm_run_inflows(rain, duration):
                 node_inflows[idx, i] = node.lateral_inflow
             # outfall_s_flow[step] = outfall_s.total_inflow
             i += 1
-            print(sim.current_time, i)
+            print(sim.current_time)
     return node_inflows
 
 
@@ -304,7 +310,7 @@ def swmm_compare(rain):  # has to be coded explicitly :(
                 # if inflow > 0:
                 # print(inflow)
                 tank_node.generated_inflow(float(inflow))
-            #rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
+            # rg1.total_precip = rain[int(i // (cfg.rain_dt / cfg.dt))] * 6
             outfall_s_flow[i] = outfall_s.total_inflow
             if (i - 1) % cfg.dt == 0:
                 print(sim.current_time)
@@ -376,6 +382,7 @@ def rain_compare():
         plt.legend((bar1, bar2), ('real', 'forecast'))
         plt.show()
 
+
 num_forecast_files = cfg.forecast_files
 forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
@@ -408,13 +415,13 @@ tank2_out = Node('tank1_out', [tank2], [outlet2], tank_node=True)
 tank3_out = Node('tank1_out', [tank3], [outlet3], tank_node=True)
 tank4_out = Node('tank1_out', [tank4], [outlet4], tank_node=True)
 
-node111 = Node('node111', [outlet1], [pipe1])
-node11 = Node('node11', [pipe1, outlet2], [pipe2])
-node12 = Node('node12', [outlet3], [pipe3])
+node111 = Node('node111', [outlet1], [pipe1], lat_node=True)
+node11 = Node('node11', [pipe1, outlet2], [pipe2], lat_node=True)
+node12 = Node('node12', [outlet3], [pipe3], lat_node=True)
 node1 = Node('node1', [pipe2, pipe3], [pipe4])
-node21 = Node('node21', [outlet4], [pipe5])
+node21 = Node('node21', [outlet4], [pipe5], lat_node=True)
 node2 = Node('node2', [pipe4, pipe5], [pipe6])
-outfall = Node('outfall', [pipe6])
+outfall = Node('outfall', [pipe6], lat_node=True)
 
 demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)  # happens only once
@@ -483,14 +490,20 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
-    baseline.swmm_flow = swmm_run(act_rain, 19)
+    baseline.swmm_flow = swmm_run(act_rain, 23)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
+    lat_flow_swmm = swmm_run_inflows(act_rain, 23)
+    Node.set_lat_flows_all(lat_flow_swmm)
+    run_model(cfg.sim_len, act_rain, swmm=True)
+    combined = Scenario()
+    combined.set_atts()
+    combined.swmm_flow = swmm_run(act_rain, 23)
     arr = unload_from_file('swap_0.5hr')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-    optimized.swmm_flow = swmm_run(act_rain, 19)
+    # optimized.swmm_flow = swmm_run(act_rain, 19)
 print('end')

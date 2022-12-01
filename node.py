@@ -6,6 +6,7 @@ import cfg
 
 class Node:
     all_nodes = []
+    lat_nodes = []
 
     def __init__(self, name, receiving_from=[], giving_to=[], tank_node=False, lat_node=False):
         self.name = name
@@ -15,6 +16,13 @@ class Node:
         self.lat_node = lat_node
         self.lat_flows = None
         Node.all_nodes.append(self)
+        if self.lat_node:
+            Node.lat_nodes.append(self)
+
+    @classmethod
+    def set_lat_flows_all(cls, swmm_lat_flows):
+        for num, node in enumerate(cls.lat_nodes):
+            node.set_lat_flows(swmm_lat_flows[num, :] / 1000)
 
     def handle_flow(self, timestep, swmm=False):
         inflow: float = 0
@@ -24,6 +32,8 @@ class Node:
         else:
             for pipe in self.receiving_from:
                 inflow += pipe.outlet_Q[timestep]
+            if self.lat_node and swmm:
+                inflow += self.lat_flows[timestep]
         for pipe in self.giving_to:
             pipe.inlet_Q[timestep] = inflow / len(self.giving_to)
 
@@ -55,5 +65,5 @@ class Node:
             inflow += pipe.outlet_Q[timestep]
         return inflow
 
-    def set_lat_flows(self, timestep, flows):
+    def set_lat_flows(self, flows):
         self.lat_flows = flows
