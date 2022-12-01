@@ -24,7 +24,12 @@ class Node:
         for num, node in enumerate(cls.lat_nodes):
             node.set_lat_flows(swmm_lat_flows[num, :] / 1000)
 
-    def handle_flow(self, timestep, swmm=False):
+    @classmethod
+    def reset_lat_flows(cls):
+        for node in cls.lat_nodes:
+            node.lat_flows = None
+
+    def handle_flow(self, timestep, swmm):
         inflow: float = 0
         if self.tank_node:
             for tank in self.receiving_from:
@@ -33,7 +38,11 @@ class Node:
             for pipe in self.receiving_from:
                 inflow += pipe.outlet_Q[timestep]
             if self.lat_node and swmm:
-                inflow += self.lat_flows[timestep]
+                try:
+                    inflow += self.lat_flows[timestep]
+                except IndexError:
+                    inflow += 0.0
+
         for pipe in self.giving_to:
             pipe.inlet_Q[timestep] = inflow / len(self.giving_to)
 

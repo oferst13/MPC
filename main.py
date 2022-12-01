@@ -64,8 +64,9 @@ class Scenario:
             self.outfall_flow = copy.copy(pipe6.outlet_Q)
         else:
             self.outfall_flow = pipe6.outlet_Q + np.pad(outfall.lat_flows, (0,
-                                                                            len(pipe6.outlet_Q) - len(outfall.lat_flows)),
-                                                                            'constant')
+                                                                            len(pipe6.outlet_Q) - len(
+                                                                                outfall.lat_flows)),
+                                                        'constant')
 
     def set_atts(self):
         self.set_last_outflow()
@@ -133,7 +134,7 @@ def calc_mass_balance():
     return mass_balance
 
 
-def run_model(duration, rain, swmm=False):
+def run_model(duration, rain, swmm_=False):
     for i in range(duration):
         if sum(rain[int(i // (cfg.rain_dt / cfg.dt)):-1]) + Tank.get_tot_storage() == 0:
             break  # this should break forecast run only!
@@ -141,10 +142,16 @@ def run_model(duration, rain, swmm=False):
             tank.tank_fill(i)
             tank.calc_release(i, baseline.last_outflow)
             tank.rw_use(i)
-        if (Pipe.get_tot_Q(i - 1) + Tank.get_tot_outflow(i)) < 1e-3:
+        if (Pipe.get_tot_Q(i - 1) + Tank.get_tot_outflow(i)) < 1e-3 and not swmm_:
             continue
+        if swmm_:
+            try:
+                if np.sum(lat_flow_swmm[:, i]) < 0.1:
+                    continue
+            except IndexError:
+                continue
         for node in Node.all_nodes:
-            node.handle_flow(i, swmm)
+            node.handle_flow(i, swmm=swmm_)
             for pipe in node.giving_to:
                 pipe.calc_q_outlet(i)
 
@@ -197,7 +204,11 @@ def unload_from_file(filename):
 
 def plot_compare(outflow1, outflow2, units):
     plt.rc('font', size=11)
-    last_q = np.max(np.nonzero(outflow1 > 0.0005))
+    if units == 'CMS':
+        cutoff = 0.0005
+    else:
+        cutoff = 0.5
+    last_q = np.max(np.nonzero(outflow1 > cutoff))
     plot_hours = np.ceil(last_q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
     fig.set_size_inches(6, 4)
@@ -490,20 +501,22 @@ if real_rain:
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     baseline.set_atts()
-    baseline.swmm_flow = swmm_run(act_rain, 23)
+    baseline.swmm_flow = swmm_run(act_rain, 20)
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
-    lat_flow_swmm = swmm_run_inflows(act_rain, 23)
+    lat_flow_swmm = swmm_run_inflows(act_rain, 20)
     Node.set_lat_flows_all(lat_flow_swmm)
-    run_model(cfg.sim_len, act_rain, swmm=True)
+    run_model(cfg.sim_len, act_rain, swmm_=True)
     combined = Scenario()
     combined.set_atts()
-    combined.swmm_flow = swmm_run(act_rain, 23)
+    Node.reset_lat_flows()
+    Pipe.reset_pipe_all(cfg.sim_len, 'factory')
+    Tank.reset_all(cfg.sim_len, 'factory')
     arr = unload_from_file('swap_0.5hr')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-    # optimized.swmm_flow = swmm_run(act_rain, 19)
+    optimized.swmm_flow = swmm_run(act_rain, 20)
 print('end')
