@@ -441,7 +441,6 @@ real_time = 0
 optimize = False
 if optimize:
     for forecast_idx in forecast_indices:
-        # Create forecast - currently real rain only!
         forecast_file = set_rain_filename('09-10', forecast_idx, is_forecast=True)
         forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
@@ -451,7 +450,6 @@ if optimize:
             baseline = Scenario()
         else:
             baseline.reset_scenario()
-
         for tank in Tank.all_tanks:
             tank.reset_tank(cfg.forecast_len, 'cycle')
         for pipe in Pipe.all_pipes:
