@@ -32,4 +32,7 @@ demand_dt = 3 * 60 * 60
 demands_3h = np.array([5, 3, 20, 15, 12, 15, 18, 12])
 PD = 33
 
-
+swmm_files = dict(first_sim='clustered-no_roof.inp',
+                  first_real='clustered-no_roof-start.inp',
+                  sim='clustered-no_roof-sim.inp',
+                  real='clustered-no_roof-real.inp')
