@@ -22,7 +22,8 @@ forecast_hor = 3
 if collective_hor:
     prediction_hor = copy.copy(forecast_hor)
     control_hor = copy.copy(forecast_hor)
-sample_interval = 60 * 60
+sample_hr = 1
+sample_interval = sample_hr * 60 * 60
 sample_len = int(sample_interval / dt)
 control_interval = 30 * 60
 
@@ -32,7 +33,7 @@ demand_dt = 3 * 60 * 60
 demands_3h = np.array([5, 3, 20, 15, 12, 15, 18, 12])
 PD = 33
 
-swmm_files = dict(first_sim='clustered-no_roof.inp',
-                  first_real='clustered-no_roof-start.inp',
-                  sim='clustered-no_roof-sim.inp',
-                  real='clustered-no_roof-real.inp')
+swmm_files = {(False, 'sim'): 'clustered-no_roof.inp',
+              (False, 'real'): 'clustered-no_roof-start.inp',
+              (True, 'sim'): 'clustered-no_roof-sim.inp',
+              (True, 'real'): 'clustered-no_roof-real.inp'}

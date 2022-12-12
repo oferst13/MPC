@@ -82,7 +82,7 @@ class Tank:
         if last_overflow_list:
             return max(last_overflow_list)
         else:
-            return 0
+            return cfg.forecast_len
 
     @classmethod
     def set_inflow_forecast_all(cls, forecast_rain):
