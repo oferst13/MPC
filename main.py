@@ -437,6 +437,7 @@ swmm_optim = True
 if swmm_optim is False:
     for node in Node.lat_nodes:
         node.lat_node = False
+    Node.lat_nodes = []
 real_time = 0
 optimize = False
 if optimize:
