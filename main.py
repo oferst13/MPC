@@ -30,6 +30,7 @@ class Scenario:
         self.outfall_flow = None
         self.swmm_flow = None
         self.available_water = None
+        self.max_swmm_flow = None
 
     def calc_obj_Q(self):
         tot_out_vol = outfall.get_outflow_volume()
@@ -54,6 +55,9 @@ class Scenario:
 
     def set_max_flow(self):
         self.max_flow = outfall.get_max_Q()
+
+    def set_max_swmm_flow(self):
+        self.max_swmm_flow = np.max(self.swmm_flow)
 
     def set_last_Q(self):
         self.last_Q = outfall.get_zero_Q()
@@ -81,6 +85,7 @@ class Scenario:
 
     def set_swmm_flow(self, flow):
         self.swmm_flow = flow
+        self.set_max_swmm_flow()
 
     def set_available_water(self):
         self.available_water = self.rw_supply + Tank.get_tot_storage()
@@ -433,7 +438,7 @@ outfall = Node('outfall', [pipe6], lat_node=True)
 
 demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)  # happens only once
-swmm_optim = True
+swmm_optim = False
 if swmm_optim is False:
     for node in Node.lat_nodes:
         node.lat_node = False
