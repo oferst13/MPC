@@ -200,7 +200,8 @@ def unload_from_file(filename):
     return thingy
 
 
-def plot_compare(outflow1, outflow2, units):
+def plot_compare(outflow1, outflow2, units, outflow3=None, legend1='Baseline', legend2='Controlled',
+                 legend3='Tank Outflows'):
     plt.rc('font', size=11)
     if units == 'CMS':
         cutoff = 0.0005
@@ -209,7 +210,7 @@ def plot_compare(outflow1, outflow2, units):
     last_q = np.max(np.nonzero(outflow1 > cutoff))
     plot_hours = np.ceil(last_q * cfg.dt / 3600)
     fig, axs = plt.subplots(2, 1, gridspec_kw={'height_ratios': [1, 2]})
-    fig.set_size_inches(6, 4)
+    fig.set_size_inches(7.5, 5)
     rain_hours = np.linspace(0, int(cfg.sim_days * 24), int(cfg.sim_days * 24 * 3600 / cfg.rain_dt) + 1,
                              dtype='longfloat')
     axs[0].bar(rain_hours[np.nonzero(rain_hours <= plot_hours)],
@@ -226,14 +227,14 @@ def plot_compare(outflow1, outflow2, units):
     axs[0].grid(True)
     axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
                 outflow1[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'r-',
-                label="Baseline")
+                label=legend1)
     axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
                 outflow2[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])], 'b-',
-                label="Controlled")
-    # axs[1].plot(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)],
-    # 1000 * np.ones(
-    # len(source.hours[np.nonzero(source.hours <= 1 + bm.last_overflow * bm.dt / 3600)])) * bm.obj_Q,
-    # 'g--', label="$Q_{objective}$")
+                label=legend2)
+    if outflow3:
+        axs[1].plot(cfg.hours[np.nonzero(cfg.hours <= plot_hours)],
+                    outflow3[0:len(cfg.hours[np.nonzero(cfg.hours <= plot_hours)])],
+                    'g--', label=legend3)
     if units == 'CMS':
         axs[1].set_ylabel('Outfall Flow Rate ' + r'($\frac{m^3}{s}$)')
     else:
@@ -364,9 +365,9 @@ def plot_tank_storage():
                  , label=f'Tank {gg + 1}', linewidth=4 - 0.7 * gg, linestyle=ls[gg])
     fig = plt.gcf()
     # plt.xticks(np.arange(0, plot_hours+1, 1.0))
-    fig.set_size_inches(6, 3.75)
+    fig.set_size_inches(7.5, 5)
     fig.tight_layout(pad=1.5)
-    plt.legend(loc='center right')
+    plt.legend(loc='upper right')
     # , bbox_to_anchor=(0.6,0))
     plt.xlabel('t (hours)')
     plt.ylabel('Tank storage %')
@@ -394,6 +395,32 @@ def set_swmm_file(time, state):
     state_key = (time > 0, state)
     filename = cfg.swmm_files[state_key]
     return filename
+
+
+def set_no_rwh_scenario():
+    Pipe.reset_pipe_all(cfg.sim_len, 'factory')
+    Tank.reset_all(cfg.sim_len, 'factory')
+    Tank.set_inflow_forecast_all(act_rain)
+    for tt in Tank.all_tanks:
+        tt.tank_size = tt.roof * 0.005
+    run_model(cfg.sim_len, act_rain, swmm_optim)
+    no_rwh = Scenario()
+    no_rwh.set_atts()
+    no_rwh.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    return no_rwh
+
+
+def set_passive_scenario(array_like, valve_setting):
+    Pipe.reset_pipe_all(cfg.sim_len, 'factory')
+    Tank.reset_all(cfg.sim_len, 'factory')
+    Tank.set_inflow_forecast_all(act_rain)
+    passive_array = np.ones_like(array_like) * valve_setting
+    Tank.set_releases_all(passive_array)
+    run_model(cfg.sim_len, act_rain, swmm_optim)
+    passive = Scenario()
+    passive.set_atts()
+    passive.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    return passive
 
 
 num_forecast_files = cfg.forecast_files
@@ -438,7 +465,7 @@ outfall = Node('outfall', [pipe6], lat_node=True)
 
 demands_PD = set_demands_per_dt()
 Tank.set_daily_demands_all(demands_PD)  # happens only once
-swmm_optim = False
+swmm_optim = True
 if swmm_optim is False:
     for node in Node.lat_nodes:
         node.lat_node = False
@@ -470,7 +497,7 @@ if optimize:
         last_overflow = Tank.get_last_overflow()
         obj_Q = (integrate.simps(baseline.outfall_flow, cfg.t[:len(baseline.outfall_flow)])) / cfg.forecast_len
 
-        if baseline.obj_Q > 0.0001:
+        if baseline.obj_Q > 0.0001 and Tank.get_cum_overflow() > 0.5:
             ga_instance = set_ga_instance()
             ga_instance.run()
             best_solution = np.reshape(ga_instance.best_solution()[0],
@@ -508,7 +535,7 @@ if real_rain:
         baseline.reset_scenario()
     act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
-    lat_flows = swmm_run_inflows(act_rain, 20, cfg.swmm_files[(False, 'sim')])
+    lat_flows = swmm_run_inflows(act_rain, 21, cfg.swmm_files[(False, 'sim')])
     Node.set_lat_flows_all(lat_flows)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     baseline.set_atts()
@@ -516,7 +543,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('swmm_optim-0.5hr-2')
+    arr = unload_from_file('swmm-09-10-5m3')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")

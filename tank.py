@@ -5,7 +5,7 @@ import cfg
 
 
 class Tank:
-    standard_size = 10
+    standard_size = 5
     standard_orifice = 0.05
     standard_diameter = 2.55
     all_tanks = []
@@ -57,7 +57,7 @@ class Tank:
 
     @classmethod
     def get_cum_overflow(cls):
-        cum_overflow = np.zeros(cfg.sim_len)
+        cum_overflow = np.zeros(len(cls.all_tanks[0].overflows))
         for tank in cls.all_tanks:
             cum_overflow += tank.overflows
         return np.sum(cum_overflow)

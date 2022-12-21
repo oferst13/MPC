@@ -3,7 +3,7 @@ import cfg
 import pandas as pd
 
 
-rain_event = '09-10'
+rain_event = '20-21'
 suffix = '.csv'
 num_forecast_files = cfg.forecast_files
 swap_probs = [0.2, 0.3, 0.4]
