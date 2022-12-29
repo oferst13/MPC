@@ -474,7 +474,7 @@ real_time = 0
 optimize = False
 if optimize:
     for forecast_idx in forecast_indices:
-        forecast_file = set_rain_filename('09-10', forecast_idx, is_forecast=True)
+        forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True)
         forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
@@ -512,7 +512,7 @@ if optimize:
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-        period_file = set_rain_filename('09-10', forecast_idx, is_forecast=False)
+        period_file = set_rain_filename('20-21', forecast_idx, is_forecast=False)
         period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(period_rain)
         sim_state = 'real'
@@ -533,7 +533,7 @@ if real_rain:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-    act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    act_rain = set_rain_input('20-21.csv', cfg.rain_dt, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
     lat_flows = swmm_run_inflows(act_rain, 21, cfg.swmm_files[(False, 'sim')])
     Node.set_lat_flows_all(lat_flows)
@@ -543,7 +543,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('swmm-09-10-5m3')
+    arr = unload_from_file('20-21-20min')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")

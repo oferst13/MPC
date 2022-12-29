@@ -14,7 +14,7 @@ stop_criteria = "saturate_75"
 
 def pop_init(release_interval, n_tanks):
     num_genes = release_interval * n_tanks
-    num_sols = math.ceil(num_genes * 1.4)
+    num_sols = math.ceil(num_genes * 1.3)
     sol_zero = np.zeros(num_genes)
     sol_one = np.ones(num_genes) * gene_space[0]
     sol_two = np.ones(num_genes) * gene_space[1]
