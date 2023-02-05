@@ -5,7 +5,7 @@ import cfg
 
 
 class Tank:
-    standard_size = 5
+    standard_size = 10
     standard_orifice = 0.05
     standard_diameter = 2.55
     all_tanks = []

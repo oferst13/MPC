@@ -443,12 +443,18 @@ outlet2 = Pipe('outlet2', 330, 0.4, 0.015)
 outlet3 = Pipe('outlet3', 220, 0.4, 0.02)
 outlet4 = Pipe('outlet4', 350, 0.4, 0.007)
 
-pipe1 = Pipe('pipe1', 400, 0.4, 0.0063)
-pipe2 = Pipe('pipe2', 500, 0.6, 0.002)
-pipe3 = Pipe('pipe3', 400, 0.4, 0.0013)
-pipe4 = Pipe('pipe4', 400, 0.8, 0.0088)
-pipe5 = Pipe('pipe5', 300, 0.4, 0.005)
-pipe6 = Pipe('pipe6', 200, 0.8, 0.01)
+#pipe1 = Pipe('pipe1', 400, 0.4, 0.0063)
+pipe1 = Pipe('pipe1', 200, 0.4, 0.0125)
+#pipe2 = Pipe('pipe2', 500, 0.6, 0.002)
+pipe2 = Pipe('pipe2', 200, 0.6, 0.005)
+#pipe3 = Pipe('pipe3', 400, 0.4, 0.0013)
+pipe3 = Pipe('pipe3', 150, 0.4, 0.0033)
+#pipe4 = Pipe('pipe4', 400, 0.8, 0.0088)
+pipe4 = Pipe('pipe4', 200, 0.8, 0.0175)
+#pipe5 = Pipe('pipe5', 300, 0.4, 0.005)
+pipe5 = Pipe('pipe5', 200, 0.4, 0.02)
+#pipe6 = Pipe('pipe6', 200, 0.8, 0.01)
+pipe6 = Pipe('pipe6', 120, 0.8, 0.017)
 
 tank1_out = Node('tank1_out', [tank1], [outlet1], tank_node=True)
 tank2_out = Node('tank1_out', [tank2], [outlet2], tank_node=True)
@@ -474,7 +480,7 @@ real_time = 0
 optimize = False
 if optimize:
     for forecast_idx in forecast_indices:
-        forecast_file = set_rain_filename('09-10', forecast_idx, is_forecast=True)
+        forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True)
         forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
@@ -512,7 +518,7 @@ if optimize:
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-        period_file = set_rain_filename('09-10', forecast_idx, is_forecast=False)
+        period_file = set_rain_filename('20-21', forecast_idx, is_forecast=False)
         period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(period_rain)
         sim_state = 'real'
@@ -533,7 +539,7 @@ if real_rain:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-    act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    act_rain = set_rain_input('20-21.csv', cfg.rain_dt, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
     lat_flows = swmm_run_inflows(act_rain, 21, cfg.swmm_files[(False, 'sim')])
     Node.set_lat_flows_all(lat_flows)
@@ -543,7 +549,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('swmm-09-10-5m3')
+    arr = unload_from_file('20-21-20min')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
