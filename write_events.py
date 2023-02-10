@@ -71,5 +71,5 @@ while i <= last_rain:
     mm, dur = close_event(first_i, last_i)
     events.append([first_i, last_i, mm, dur])
 events = np.array(events)
-
+a=events[events[:,2]>40]
 print(' ')
