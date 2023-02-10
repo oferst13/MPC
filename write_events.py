@@ -27,7 +27,7 @@ def close_event(first, last):
 
 raw_path = 'rain_files'
 df_path = raw_path + '/df_rain_files'
-diff_event = 12  # min difference between events in hours
+diff_event = 6  # min difference between events in hours
 season = '09-10'
 rain_file = season + '.csv'
 rain_df_file = df_path + '/' + season + '-df.csv'
@@ -69,6 +69,7 @@ while i <= last_rain:
     last_i = i
     i += 1
     mm, dur = close_event(first_i, last_i)
-    events.append([mm, dur])
+    events.append([first_i, last_i, mm, dur])
+events = np.array(events)
 
 print(' ')
