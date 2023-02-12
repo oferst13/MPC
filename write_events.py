@@ -4,29 +4,19 @@ from datetime import datetime
 import os
 
 
-class Event:
-    all_events = []
-
-    def __init__(self, first_idx, last_idx):
-        self.first_idx = first_idx
-        self.last_idx = last_idx
-        self.name = None
-        self.df = None
-        self.meta_df = None
-        Event.all_events.append(self)
-
-
 def close_event(first, last):
     event_array = np.concatenate([[0], rain_array[first:last + 1], [0]])
     tot_mm = round(np.sum(event_array), 2)
     duration = len(event_array) * rain_dt / 60
     return tot_mm, duration
 
-#def find_next_ze
-
+def write_event_to_csv(first, last):
+    event_df = season_data.iloc[int(first-1):int(last+2)]
+    filename = str(event_df.Time.iloc[0]) + '-' + str(event_df.Time.iloc[-1]) + '.csv'
 
 raw_path = 'rain_files'
 df_path = raw_path + '/df_rain_files'
+df_event_path = df_path + '/df_events'
 diff_event = 6  # min difference between events in hours
 season = '09-10'
 rain_file = season + '.csv'
@@ -71,5 +61,7 @@ while i <= last_rain:
     mm, dur = close_event(first_i, last_i)
     events.append([first_i, last_i, mm, dur])
 events = np.array(events)
-a=events[events[:,2]>40]
+real_events = events[events[:, 2] > 40]
+for event in real_events:
+    write_event_to_csv(event[0], event[1])
 print(' ')
