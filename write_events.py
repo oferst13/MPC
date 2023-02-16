@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import os
+import math
 
 
 def close_event(first, last):
@@ -10,15 +11,48 @@ def close_event(first, last):
     duration = len(event_array) * rain_dt / 60
     return tot_mm, duration
 
+
+def handle_events(season_events):
+    meta_cols = ['Dates', 'Duration', 'Max_EDf5', 'Max30', 'Total_mm']
+    season_list = []
+    for event in season_events:
+        df, str_dates = write_event_to_csv(event[0], event[1])
+        meta = calc_meta(df, str_dates)
+        season_list.append(meta)
+    season_meta = pd.DataFrame(season_list, columns=meta_cols)
+
+
+def calc_meta(df, filename):
+    duration = (df.Time.iloc[-1] - df.Time.iloc[0]).total_seconds() / 3600
+    edf5_window = int(math.ceil((duration * 0.05) * (60 / rain_dt)))
+    max30_window = int(30 / rain_dt)
+    df['edf5'] = df[rain_header].rolling(edf5_window, min_periods=1).sum()
+    df['max30'] = df[rain_header].rolling(max30_window, min_periods=1).sum()
+    edf5 = df.edf5.max()
+    max30 = df.max30.max()
+    tot_mm = df[rain_header].sum()
+    # meta_df = pd.DataFrame({'Duration': duration,
+    #   'Max30': max30,
+    #  'Max_EDf5': edf5,
+    #  'Total_mm': tot_mm}, index=[0])
+    meta_list = [filename, duration, edf5, max30, tot_mm]
+    return meta_list
+
+
 def write_event_to_csv(first, last):
-    event_df = season_data.iloc[int(first-1):int(last+2)]
-    filename = str(event_df.Time.iloc[0]) + '-' + str(event_df.Time.iloc[-1]) + '.csv'
+    event_df = season_data.iloc[int(first - 1):int(last + 2)].copy()
+    filename = str(event_df.Time.iloc[0].date()) + '-' + str(event_df.Time.iloc[-1].date())
+    os.makedirs(df_event_path + '/meta', exist_ok=True)
+    headers = ['Time', rain_header]
+    event_df.to_csv(df_event_path + '/' + filename + '.csv', columns=headers, index=False)
+    return event_df, filename
+
 
 raw_path = 'rain_files'
 df_path = raw_path + '/df_rain_files'
 df_event_path = df_path + '/df_events'
 diff_event = 6  # min difference between events in hours
-season = '09-10'
+season = '21-22'
 rain_file = season + '.csv'
 rain_df_file = df_path + '/' + season + '-df.csv'
 
@@ -62,6 +96,5 @@ while i <= last_rain:
     events.append([first_i, last_i, mm, dur])
 events = np.array(events)
 real_events = events[events[:, 2] > 40]
-for event in real_events:
-    write_event_to_csv(event[0], event[1])
+handle_events(real_events)
 print(' ')
