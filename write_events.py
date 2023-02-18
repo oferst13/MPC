@@ -20,6 +20,8 @@ def handle_events(season_events):
         meta = calc_meta(df, str_dates)
         season_list.append(meta)
     season_meta = pd.DataFrame(season_list, columns=meta_cols)
+    os.makedirs(df_event_path + '/meta', exist_ok=True)
+    season_meta.to_csv(df_event_path + '/meta/' + season + '-meta.csv', index=False)
 
 
 def calc_meta(df, filename):
@@ -41,8 +43,8 @@ def calc_meta(df, filename):
 
 def write_event_to_csv(first, last):
     event_df = season_data.iloc[int(first - 1):int(last + 2)].copy()
-    filename = str(event_df.Time.iloc[0].date()) + '-' + str(event_df.Time.iloc[-1].date())
-    os.makedirs(df_event_path + '/meta', exist_ok=True)
+    filename = str(event_df.Time.iloc[0].date()) + ' - ' + str(event_df.Time.iloc[-1].date())
+    os.makedirs(df_event_path, exist_ok=True)
     headers = ['Time', rain_header]
     event_df.to_csv(df_event_path + '/' + filename + '.csv', columns=headers, index=False)
     return event_df, filename
@@ -52,7 +54,7 @@ raw_path = 'rain_files'
 df_path = raw_path + '/df_rain_files'
 df_event_path = df_path + '/df_events'
 diff_event = 6  # min difference between events in hours
-season = '21-22'
+season = '19-20'
 rain_file = season + '.csv'
 rain_df_file = df_path + '/' + season + '-df.csv'
 
@@ -88,7 +90,7 @@ while i <= last_rain:
     i = i + np.min(np.nonzero(rain_array[i:last_rain + 2] == 0))
     next_diff = np.sum(rain_array[i:i + int(diff_event * (60 / rain_dt))])
     while next_diff:
-        i = i + np.max(np.nonzero(rain_array[i:i + int(diff_event * (60 / rain_dt))]))
+        i = i + np.max(np.nonzero(rain_array[i: i + int(diff_event * (60 / rain_dt))]))
         next_diff = np.sum(rain_array[i + 1:i + int(diff_event * (60 / rain_dt))])
     last_i = i
     i += 1
