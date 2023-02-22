@@ -54,7 +54,7 @@ raw_path = 'rain_files'
 df_path = raw_path + '/df_rain_files'
 df_event_path = df_path + '/df_events'
 diff_event = 6  # min difference between events in hours
-season = '19-20'
+season = '21-22'
 rain_file = season + '.csv'
 rain_df_file = df_path + '/' + season + '-df.csv'
 
