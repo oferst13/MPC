@@ -480,7 +480,7 @@ real_time = 0
 optimize = False
 if optimize:
     for forecast_idx in forecast_indices:
-        forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True)
+        forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True) #np.lib.stride_tricks.sliding_window_view
         forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
@@ -539,7 +539,7 @@ if real_rain:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-    act_rain = set_rain_input('20-21.csv', cfg.rain_dt, cfg.sim_len)
+    act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
     lat_flows = swmm_run_inflows(act_rain, 21, cfg.swmm_files[(False, 'sim')])
     Node.set_lat_flows_all(lat_flows)
