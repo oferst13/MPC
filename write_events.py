@@ -28,8 +28,8 @@ def calc_meta(df, filename):
     duration = (df.Time.iloc[-1] - df.Time.iloc[0]).total_seconds() / 3600
     edf5_window = int(math.ceil((duration * 0.05) * (60 / rain_dt)))
     max30_window = int(30 / rain_dt)
-    df['edf5'] = df[rain_header].rolling(edf5_window, min_periods=1).sum()
-    df['max30'] = df[rain_header].rolling(max30_window, min_periods=1).sum()
+    df['edf5'] = df[rain_header].rolling(edf5_window, min_periods=1).sum() / (edf5_window * rain_dt / 60)
+    df['max30'] = df[rain_header].rolling(max30_window, min_periods=1).sum() / (max30_window * rain_dt / 60)
     edf5 = df.edf5.max()
     max30 = df.max30.max()
     tot_mm = df[rain_header].sum()
@@ -54,7 +54,7 @@ raw_path = 'rain_files'
 df_path = raw_path + '/df_rain_files'
 df_event_path = df_path + '/df_events'
 diff_event = 6  # min difference between events in hours
-season = '21-22'
+season = '99-00'
 rain_file = season + '.csv'
 rain_df_file = df_path + '/' + season + '-df.csv'
 
