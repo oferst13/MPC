@@ -57,7 +57,7 @@ class Tank:
 
     @classmethod
     def get_cum_overflow(cls):
-        cum_overflow = np.zeros(cfg.sim_len)
+        cum_overflow = np.zeros(len(cls.all_tanks[0].overflows))
         for tank in cls.all_tanks:
             cum_overflow += tank.overflows
         return np.sum(cum_overflow)
@@ -82,7 +82,7 @@ class Tank:
         if last_overflow_list:
             return max(last_overflow_list)
         else:
-            return 0
+            return cfg.forecast_len
 
     @classmethod
     def set_inflow_forecast_all(cls, forecast_rain):

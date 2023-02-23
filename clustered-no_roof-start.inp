@@ -1,0 +1,268 @@
+[TITLE]
+;;Project Title/Notes
+
+[OPTIONS]
+;;Option             Value
+FLOW_UNITS           LPS
+INFILTRATION         MODIFIED_HORTON
+FLOW_ROUTING         DYNWAVE
+LINK_OFFSETS         DEPTH
+MIN_SLOPE            0
+ALLOW_PONDING        NO
+SKIP_STEADY_STATE    NO
+
+START_DATE           02/13/2017
+START_TIME           00:00:00
+REPORT_START_DATE    02/13/2017
+REPORT_START_TIME    00:00:00
+END_DATE             02/13/2017
+END_TIME             08:00:00
+SWEEP_START          01/01
+SWEEP_END            12/31
+DRY_DAYS             0
+REPORT_STEP          00:00:30
+WET_STEP             00:00:30
+DRY_STEP             00:01:00
+ROUTING_STEP         0:00:30 
+RULE_STEP            00:00:30
+
+INERTIAL_DAMPING     PARTIAL
+NORMAL_FLOW_LIMITED  BOTH
+FORCE_MAIN_EQUATION  H-W
+VARIABLE_STEP        0.75
+LENGTHENING_STEP     0
+MIN_SURFAREA         1.167
+MAX_TRIALS           8
+HEAD_TOLERANCE       0.0015
+SYS_FLOW_TOL         5
+LAT_FLOW_TOL         5
+MINIMUM_STEP         0.5
+THREADS              1
+
+[FILES]
+;;Interfacing Files
+SAVE HOTSTART "hotstart.hsf"
+
+[EVAPORATION]
+;;Data Source    Parameters
+;;-------------- ----------------
+TIMESERIES       evap
+DRY_ONLY         YES
+
+[RAINGAGES]
+;;Name           Format    Interval SCF      Source    
+;;-------------- --------- ------ ------ ----------
+RG1              VOLUME    0:10     1.0      TIMESERIES 09-10           
+
+[SUBCATCHMENTS]
+;;Name           Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  SnowPack        
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- -------- ----------------
+31               RG1              111              2.7225   16.5     150      2        0                        
+32               RG1              11               2.9335   10.5     120      1.5      0                        
+33               RG1              12               2.81     9        165      2        0                        
+34               RG1              21               5.58     20       200      0.7      0                        
+35               RG1              outfall          0.8      15       100      0.5      0                        
+
+[SUBAREAS]
+;;Subcatchment   N-Imperv   N-Perv     S-Imperv   S-Perv     PctZero    RouteTo    PctRouted 
+;;-------------- ---------- ---------- ---------- ---------- ---------- ---------- ----------
+31               0.014      0.16       2.5        5          0          PERVIOUS   100       
+32               0.014      0.16       2.5        5          0          PERVIOUS   100       
+33               0.014      0.16       2.5        5          0          PERVIOUS   100       
+34               0.014      0.16       2.5        5          0          PERVIOUS   100       
+35               0.014      0.16       2.5        5          0          PERVIOUS   100       
+
+[INFILTRATION]
+;;Subcatchment   Param1     Param2     Param3     Param4     Param5    
+;;-------------- ---------- ---------- ---------- ---------- ----------
+31               10         2          2          6          0         
+32               10         2          2          6          0         
+33               10         2          2          6          0         
+34               10         2          2          6          0         
+35               10         2          2          6          0         
+
+[JUNCTIONS]
+;;Name           Elevation  MaxDepth   InitDepth  SurDepth   Aponded   
+;;-------------- ---------- ---------- ---------- ---------- ----------
+111              51         1.5        0          0          0         
+11               48.5       1          0          0          0         
+1                47.5       0.5        0          0          0         
+2                44         1          0          0          0         
+21               45.5       1          0          0          0         
+12               48         0.4        0          0          0         
+tank1            56         1.5        0          0          0         
+tank2            53.5       1          0          0          0         
+tank3            52.4       0          0          0          0         
+tank4            48         1          0          0          0         
+
+[OUTFALLS]
+;;Name           Elevation  Type       Stage Data       Gated    Route To        
+;;-------------- ---------- ---------- ---------------- -------- ----------------
+outfall          42         FREE                        NO                       
+
+[CONDUITS]
+;;Name           From Node        To Node          Length     Roughness  InOffset   OutOffset  InitFlow   MaxFlow   
+;;-------------- ---------------- ---------------- ---------- ---------- ---------- ---------- ---------- ----------
+pipe6            2                outfall          200        0.012      0          0          0          0         
+pipe3            12               1                400        0.012      0          0          0          0         
+pipe5            21               2                300        0.012      0          0          0          0         
+pipe4            1                2                400        0.012      0          0          0          0         
+pipe2            11               1                500        0.012      0          0          0          0         
+pipe1            111              11               400        0.012      0          0          0          0         
+outlet1          tank1            111              250        0.012      0          0          0          0         
+outlet2          tank2            11               330        0.012      0          0          0          0         
+outlet3          tank3            12               220        0.012      0          0          0          0         
+outlet4          21               tank4            350        0.012      0          0          0          0         
+
+[XSECTIONS]
+;;Link           Shape        Geom1            Geom2      Geom3      Geom4      Barrels    Culvert   
+;;-------------- ------------ ---------------- ---------- ---------- ---------- ---------- ----------
+pipe6            CIRCULAR     0.8              0          0          0          1                    
+pipe3            CIRCULAR     0.4              0          0          0          1                    
+pipe5            CIRCULAR     0.4              0          0          0          1                    
+pipe4            CIRCULAR     0.8              0          0          0          1                    
+pipe2            CIRCULAR     0.6              0          0          0          1                    
+pipe1            CIRCULAR     0.4              0          0          0          1                    
+outlet1          CIRCULAR     0.4              0          0          0          1                    
+outlet2          CIRCULAR     0.4              0          0          0          1                    
+outlet3          CIRCULAR     0.4              0          0          0          1                    
+outlet4          CIRCULAR     0.4              0          0          0          1                    
+
+[INFLOWS]
+;;Node           Constituent      Time Series      Type     Mfactor  Sfactor  Baseline Pattern
+;;-------------- ---------------- ---------------- -------- -------- -------- -------- --------
+tank1            FLOW             t1               FLOW     1.0      1.0              
+tank2            FLOW             t2               FLOW     1.0      1.0              
+tank3            FLOW             t3               FLOW     1.0      1.0              
+tank4            FLOW             t4               FLOW     1.0      1.0              
+
+[TIMESERIES]
+;;Name           Date       Time       Value     
+;;-------------- ---------- ---------- ----------
+Rain             FILE "timeSer.dat"
+;
+evap             02/13/2017 00:00      1.3       
+evap             02/14/2017 00:00      1.7       
+evap             02/15/2017 00:00      1.9       
+;
+09-10            FILE "09-10-time.dat"
+;
+t2               FILE "tank2.dat"
+;
+t3               FILE "tank3.dat"
+;
+t4               FILE "tank4.dat"
+;
+t1               FILE "tank1.dat"
+
+[REPORT]
+;;Reporting Options
+SUBCATCHMENTS ALL
+NODES ALL
+LINKS ALL
+
+[TAGS]
+
+[MAP]
+DIMENSIONS 0.000 -172.022 10000.000 10112.862
+Units      None
+
+[COORDINATES]
+;;Node           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+111              5399.901           6335.450          
+11               5255.016           4270.766          
+1                4568.662           2881.455          
+2                4075.671           1691.759          
+21               5981.574           930.734           
+12               2987.089           3920.188          
+tank1            6272.411           6602.050          
+tank2            6005.810           4384.420          
+tank3            2540.006           4469.248          
+tank4            6478.420           712.606           
+outfall          3480.801           367.279           
+
+[VERTICES]
+;;Link           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+pipe3            3934.859           2981.221          
+pipe2            4404.343           3808.685          
+pipe2            4727.113           3069.249          
+pipe1            5580.986           5316.901          
+pipe1            5123.239           5223.005          
+pipe1            5357.981           4812.207          
+pipe1            4900.235           4659.624          
+
+[Polygons]
+;;Subcatchment   X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+31               6137.031           9473.298          
+31               6137.031           9473.298          
+31               5902.289           8463.908          
+31               6183.979           7877.054          
+31               6418.721           7102.406          
+31               6395.246           6691.608          
+31               4810.739           6210.387          
+31               4540.786           6808.979          
+31               4658.157           6961.561          
+31               4517.312           7466.256          
+31               4892.899           7700.998          
+31               4892.899           7841.843          
+31               4165.200           8252.641          
+31               4399.941           8639.965          
+31               5867.077           9508.509          
+31               6183.979           9602.406          
+32               6414.319           6396.714          
+32               6449.531           4518.779          
+32               5252.347           4366.197          
+32               4348.592           3920.188          
+32               3503.521           5176.056          
+32               4841.549           6091.549          
+32               6415.786           6587.441          
+33               4102.113           8063.380          
+33               3069.249           6748.826          
+33               3092.723           6326.291          
+33               2811.033           5269.953          
+33               2811.033           4882.629          
+33               3045.775           4037.559          
+33               3526.995           3791.080          
+33               3738.263           3544.601          
+33               4196.009           3884.977          
+33               3257.042           5269.953          
+33               4583.333           6115.023          
+33               4266.432           6842.723          
+33               4465.962           6983.568          
+33               4242.958           7488.263          
+33               4688.967           7793.427          
+33               4137.324           8122.066          
+34               6379.108           4342.723          
+34               5346.244           4178.404          
+34               3890.845           3403.756          
+34               4254.695           2992.958          
+34               4372.066           2711.268          
+34               3726.526           2617.371          
+34               3703.052           1960.094          
+34               4219.484           1737.089          
+34               6508.216           809.859           
+34               7271.127           1291.080          
+34               7458.920           1842.723          
+34               7353.286           3145.540          
+34               6778.169           3145.540          
+34               6414.319           3321.596          
+34               6379.108           4295.775          
+35               3949.531           1537.559          
+35               3620.892           434.272           
+35               4125.587           293.427           
+35               4454.225           997.653           
+35               4665.493           1384.977          
+35               3984.742           1631.455          
+
+[SYMBOLS]
+;;Gage           X-Coord            Y-Coord           
+;;-------------- ------------------ ------------------
+RG1              3497.496           8480.801          
+
+
+[BACKDROP]
+FILE       "Untitled.png"
+DIMENSIONS 2102.667 -50.015 7932.192 10112.862
