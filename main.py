@@ -13,6 +13,7 @@ import pickle
 from matplotlib import pyplot as plt
 import pyswmm
 from datetime import datetime
+from numpy.lib.stride_tricks import sliding_window_view
 
 
 class Scenario:
@@ -444,17 +445,17 @@ outlet3 = Pipe('outlet3', 220, 0.4, 0.02)
 outlet4 = Pipe('outlet4', 350, 0.4, 0.007)
 
 pipe1 = Pipe('pipe1', 400, 0.4, 0.0063)
-#pipe1 = Pipe('pipe1', 200, 0.4, 0.0125)
+# pipe1 = Pipe('pipe1', 200, 0.4, 0.0125)
 pipe2 = Pipe('pipe2', 500, 0.6, 0.002)
-#pipe2 = Pipe('pipe2', 200, 0.6, 0.005)
+# pipe2 = Pipe('pipe2', 200, 0.6, 0.005)
 pipe3 = Pipe('pipe3', 400, 0.4, 0.0013)
-#pipe3 = Pipe('pipe3', 150, 0.4, 0.0033)
+# pipe3 = Pipe('pipe3', 150, 0.4, 0.0033)
 pipe4 = Pipe('pipe4', 400, 0.8, 0.0088)
-#pipe4 = Pipe('pipe4', 200, 0.8, 0.0175)
+# pipe4 = Pipe('pipe4', 200, 0.8, 0.0175)
 pipe5 = Pipe('pipe5', 300, 0.4, 0.005)
-#pipe5 = Pipe('pipe5', 200, 0.4, 0.02)
+# pipe5 = Pipe('pipe5', 200, 0.4, 0.02)
 pipe6 = Pipe('pipe6', 200, 0.8, 0.01)
-#pipe6 = Pipe('pipe6', 120, 0.8, 0.017)
+# pipe6 = Pipe('pipe6', 120, 0.8, 0.017)
 
 tank1_out = Node('tank1_out', [tank1], [outlet1], tank_node=True)
 tank2_out = Node('tank1_out', [tank2], [outlet2], tank_node=True)
@@ -480,7 +481,8 @@ real_time = 0
 optimize = False
 if optimize:
     for forecast_idx in forecast_indices:
-        forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True) #np.lib.stride_tricks.sliding_window_view
+        forecast_file = set_rain_filename('20-21', forecast_idx,
+                                          is_forecast=True)  # np.lib.stride_tricks.sliding_window_view
         forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
