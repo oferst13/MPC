@@ -5,6 +5,7 @@ import glob
 import pandas as pd
 import math
 from numpy.lib.stride_tricks import sliding_window_view
+from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
 files = glob.glob(rain_path + '/*.csv')
@@ -47,6 +48,8 @@ Cd = 0.5
 demand_dt = 3 * 60 * 60
 demands_3h = np.array([5, 3, 20, 15, 12, 15, 18, 12])
 PD = 33
+event_start_time = datetime.strptime(event_df['Time'][0].split(' ')[1], '%H:%M:%S').time()
+event_start_idx = int(event_start_time.hour*60+event_start_time.minute * (60/dt)) - 1
 
 swmm_files = {(False, 'sim'): 'clustered-no_roof.inp',
               (False, 'real'): 'clustered-no_roof-start.inp',

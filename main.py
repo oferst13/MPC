@@ -13,7 +13,6 @@ import pickle
 from matplotlib import pyplot as plt
 import pyswmm
 from datetime import datetime
-from numpy.lib.stride_tricks import sliding_window_view
 
 
 class Scenario:
@@ -479,6 +478,7 @@ if swmm_optim is False:
     Node.lat_nodes = []
 real_time = 0
 optimize = False
+
 if optimize:
     for forecast_idx in forecast_indices:
         forecast_file = set_rain_filename('20-21', forecast_idx,
