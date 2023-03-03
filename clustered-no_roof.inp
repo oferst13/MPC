@@ -42,7 +42,7 @@ THREADS              1
 [EVAPORATION]
 ;;Data Source    Parameters
 ;;-------------- ----------------
-TIMESERIES       evap
+CONSTANT         2.5
 DRY_ONLY         YES
 
 [RAINGAGES]

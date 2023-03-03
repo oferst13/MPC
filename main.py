@@ -12,7 +12,7 @@ import GA_params as ga
 import pickle
 from matplotlib import pyplot as plt
 import pyswmm
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Scenario:
@@ -117,6 +117,16 @@ def set_rain_input(rainfile, rain_dt, duration):
     return rain
 
 
+def rain_input_from_array(array, duration, idx=None, forecast_type='actual'):
+    rain = np.zeros(int(duration / (cfg.rain_dt / cfg.dt)))
+    if idx is not None:
+        rain_input = array[idx]
+    else:
+        rain_input = array
+    rain[:len(rain_input)] = rain_input
+    return rain
+
+
 def set_rain_filename(prefix, idx, is_forecast):
     idx_str = str(idx)
     cur_filename = '-'.join([prefix, idx_str])
@@ -190,12 +200,12 @@ def set_ga_instance():
 
 
 def dump_to_file(thingy, filename):
-    with open(filename, 'wb') as file:
+    with open(r'policies/' + filename, 'wb') as file:
         pickle.dump(thingy, file)
 
 
 def unload_from_file(filename):
-    with open(filename, 'rb') as file:
+    with open(r'policies/' + filename, 'rb') as file:
         thingy = pickle.load(file)
     return thingy
 
@@ -260,7 +270,7 @@ def swmm_run(rain, hours, filename):
         tank3_s = pyswmm.Nodes(sim)['tank3']
         tank4_s = pyswmm.Nodes(sim)['tank4']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, hours, 1, 1)
+        sim.end_time = sim.start_time + timedelta(minutes=(hours*60)+1)
         tank_list = [tank1_s, tank2_s, tank3_s, tank4_s]
         i = 0
         for step in sim:
@@ -284,7 +294,7 @@ def swmm_run_inflows(rain, hours, filename):
         j12 = pyswmm.Nodes(sim)['12']
         j21 = pyswmm.Nodes(sim)['21']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, hours, 1)
+        sim.end_time = sim.start_time + timedelta(minutes=(hours*60)+1)
         node_list = [j111, j11, j12, j21, outfall_s]
         node_inflows = np.zeros((len(node_list), int(hours * 3600 / cfg.dt)))
         i = 0
@@ -423,8 +433,8 @@ def set_passive_scenario(array_like, valve_setting):
     return passive
 
 
-num_forecast_files = cfg.forecast_files
-forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
+num_forecasts = len(cfg.rain_array_stacked)
+forecast_indices = set_forecast_idx(0, num_forecasts, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
 tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 190}
 tank3_dict = {'name': 'tank3', 'n_tanks': 25, 'init_storage': 0, 'roof': 8500, 'dwellers': 155}
@@ -481,9 +491,9 @@ optimize = False
 
 if optimize:
     for forecast_idx in forecast_indices:
-        forecast_file = set_rain_filename('20-21', forecast_idx,
-                                          is_forecast=True)  # np.lib.stride_tricks.sliding_window_view
-        forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
+        # forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True)
+        # forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
+        forecast_rain = rain_input_from_array(cfg.rain_array_stacked, cfg.forecast_len, idx=forecast_idx)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
             baseline
@@ -512,7 +522,7 @@ if optimize:
                                        (len(Tank.all_tanks), baseline.release_intervals))
         else:
             best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
-        if forecast_idx == 1:
+        if forecast_idx == forecast_indices[0]:
             best_solution_all = best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]
         else:
             best_solution_all = np.concatenate(
@@ -520,8 +530,9 @@ if optimize:
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-        period_file = set_rain_filename('20-21', forecast_idx, is_forecast=False)
-        period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
+        #period_file = set_rain_filename('20-21', forecast_idx, is_forecast=False)
+        #period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
+        period_rain = rain_input_from_array(cfg.rain_array_stacked, cfg.forecast_len, idx=forecast_idx)
         Tank.set_inflow_forecast_all(period_rain)
         sim_state = 'real'
         swmm_file = set_swmm_file(real_time, sim_state)
@@ -541,21 +552,22 @@ if real_rain:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-    act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    #act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    act_rain = rain_input_from_array(cfg.rain_array, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
-    lat_flows = swmm_run_inflows(act_rain, 21, cfg.swmm_files[(False, 'sim')])
+    lat_flows = swmm_run_inflows(act_rain, cfg.sim_days*24, cfg.swmm_files[(False, 'sim')])
     Node.set_lat_flows_all(lat_flows)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     baseline.set_atts()
-    baseline.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    baseline.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('20-21-20min')
+    arr = unload_from_file('2002-12-09 - 2002-12-10-perfect')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-    optimized.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    optimized.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
 print('end')
