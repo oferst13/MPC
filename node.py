@@ -53,7 +53,7 @@ class Node:
                 last_Q_list.append(np.max(np.nonzero(pipe.outlet_Q)))
             else:
                 last_Q_list.append(0)
-        if self.lat_node and (self.lat_flows is not None and np.sum(self.lat_flows) > 0.01):
+        if self.lat_node and (self.lat_flows is not None and np.sum(self.lat_flows) > 0.1):
             last_Q_list.append(np.max(np.nonzero(self.lat_flows > 0.00001)))
         return max(last_Q_list) + 1
 

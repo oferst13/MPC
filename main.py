@@ -154,7 +154,7 @@ def run_model(duration, rain, swmm_=False):
             if swmm_ is False:
                 continue
             try:
-                if np.sum(lat_flows[:, i]) < 0.1:
+                if np.sum(lat_flows[:, i]) < 0.01:
                     continue
             except IndexError:
                 continue
@@ -515,7 +515,7 @@ if optimize:
         last_overflow = Tank.get_last_overflow()
         obj_Q = (integrate.simps(baseline.outfall_flow, cfg.t[:len(baseline.outfall_flow)])) / cfg.forecast_len
 
-        if baseline.obj_Q > 0.0001 and Tank.get_cum_overflow() > 0.5:
+        if baseline.obj_Q > 0.01 and Tank.get_cum_overflow() > 5:
             ga_instance = set_ga_instance()
             ga_instance.run()
             best_solution = np.reshape(ga_instance.best_solution()[0],
@@ -527,6 +527,8 @@ if optimize:
         else:
             best_solution_all = np.concatenate(
                 (best_solution_all, best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]), axis=1)
+        if best_solution_all.shape[1] >= 155:
+            continue
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
@@ -563,11 +565,12 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('2002-12-09 - 2002-12-10-perfect')
+    arr = unload_from_file('2011-03-10 - 2011-03-11-perfect')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
     optimized.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
+
 print('end')
