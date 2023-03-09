@@ -35,7 +35,8 @@ class Scenario:
     def calc_obj_Q(self):
         tot_out_vol = outfall.get_outflow_volume()
         if tot_out_vol > 0.0001:
-            self.obj_Q = tot_out_vol / (Tank.get_last_overflow() * cfg.dt)
+            #self.obj_Q = tot_out_vol / (Tank.get_last_overflow() * cfg.dt)
+            self.obj_Q = tot_out_vol / (outfall.get_zero_Q() * cfg.dt)
         else:
             self.obj_Q = 0.00001
 
@@ -195,7 +196,9 @@ def set_ga_instance():
                        mutation_by_replacement=ga.mutation_by_replacement,
                        stop_criteria=ga.stop_criteria,
                        fitness_func=fitness_func,
-                       on_generation=on_gen)
+                       on_generation=on_gen,
+                       keep_elitism=ga.elitism,
+                       save_best_solutions=False)
     return ga_inst
 
 
@@ -527,7 +530,7 @@ if optimize:
         else:
             best_solution_all = np.concatenate(
                 (best_solution_all, best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]), axis=1)
-        if best_solution_all.shape[1] >= 155:
+        if best_solution_all.shape[1] >= 153:
             continue
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
@@ -565,7 +568,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('2011-03-10 - 2011-03-11-perfect')
+    arr = unload_from_file('2015-04-10 - 2015-04-12-perfect')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
