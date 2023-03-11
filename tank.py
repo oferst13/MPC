@@ -82,7 +82,7 @@ class Tank:
         if last_overflow_list:
             return max(last_overflow_list)
         else:
-            return cfg.forecast_len
+            return len(tank.overflows)
 
     @classmethod
     def set_inflow_forecast_all(cls, forecast_rain):
@@ -123,6 +123,7 @@ class Tank:
             release_deg = self.releases[timestep // int(cfg.release_dt / cfg.dt)]
         else:
             release_deg = 0.0
+
         release_Q = self.n_tanks * self.orifice_A * cfg.Cd \
                     * np.sqrt(2 * 9.81 * (self.cur_storage / (self.n_tanks * self.footprint))) * 0.1 * release_deg
         release_vol = release_Q * cfg.dt
