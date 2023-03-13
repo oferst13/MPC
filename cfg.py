@@ -9,7 +9,7 @@ from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
 files = glob.glob(rain_path + '/*.csv')
-event_df = pd.read_csv(files[64], index_col=False)
+event_df = pd.read_csv(files[72], index_col=False)
 rain_header = list(event_df)[1]
 rain_array = event_df[rain_header].to_numpy()
 

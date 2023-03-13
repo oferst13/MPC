@@ -530,8 +530,6 @@ if optimize:
         else:
             best_solution_all = np.concatenate(
                 (best_solution_all, best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]), axis=1)
-        if best_solution_all.shape[1] >= 153:
-            continue
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
@@ -568,7 +566,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('2020-11-20 - 2020-11-21-perfect')
+    arr = unload_from_file('2022-03-23 - 2022-03-25-perfect')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
