@@ -177,8 +177,8 @@ class Tank:
     def set_releases(self, release_vec):
         self.releases = release_vec
 
-    def rw_use(self, timestep):
-        demand = self.daily_demands[(cfg.event_start_idx + timestep) % self.daily_demands.shape[0]]
+    def rw_use(self, timestep, event_start=cfg.event_start_idx):
+        demand = self.daily_demands[(event_start + timestep) % self.daily_demands.shape[0]]
         self.cur_storage -= demand
         self.rw_supply[timestep] = copy.copy(demand)
         if self.cur_storage < 0:

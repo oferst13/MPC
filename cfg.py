@@ -9,7 +9,7 @@ from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
 files = glob.glob(rain_path + '/*.csv')
-event_df = pd.read_csv(files[72], index_col=False)
+event_df = pd.read_csv(files[45], index_col=False)
 rain_header = list(event_df)[1]
 rain_array = event_df[rain_header].to_numpy()
 
@@ -18,7 +18,11 @@ rain_dt = 60 * 10
 release_dt = 30 * 60
 beta = 5 / 4
 manning = 0.012
-sim_days = min(math.ceil(len(event_df)*rain_dt/(3600*24)) + 0.5, round(len(event_df)*rain_dt/(3600*24)) + 1)
+single = False
+if single:
+    sim_days = min(math.ceil(len(event_df)*rain_dt/(3600*24)) + 0.5, round(len(event_df)*rain_dt/(3600*24)) + 1)
+else:
+    sim_days = 10
 sim_len = int(sim_days * 24 * 60 * 60 / dt)
 forecast_hr = 3
 forecast_interval = 30 * 60
