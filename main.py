@@ -436,7 +436,7 @@ def set_passive_scenario(array_like, valve_setting):
     return passive
 
 
-num_forecasts = len(cfg.rain_array_stacked)
+num_forecasts = len(cfg.forecast_array)
 forecast_indices = set_forecast_idx(0, num_forecasts, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
 tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 190}
@@ -490,13 +490,13 @@ if swmm_optim is False:
         node.lat_node = False
     Node.lat_nodes = []
 real_time = 0
-optimize = False
+optimize = True
 
 if optimize:
     for forecast_idx in forecast_indices:
         # forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True)
         # forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
-        forecast_rain = rain_input_from_array(cfg.rain_array_stacked, cfg.forecast_len, idx=forecast_idx)
+        forecast_rain = rain_input_from_array(cfg.forecast_array, cfg.forecast_len, idx=forecast_idx)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
             baseline
@@ -544,6 +544,7 @@ if optimize:
         real_time += cfg.sample_len
 
     print(best_solution_all)
+    dump_to_file(best_solution_all, cfg.event_dates + '-plusMin')
 
 real_rain = True
 if real_rain:
@@ -566,7 +567,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('2015-01-07 - 2015-01-10-perfect')
+    arr = unload_from_file(cfg.event_dates + '-plusMin')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")

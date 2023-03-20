@@ -8,17 +8,22 @@ from numpy.lib.stride_tricks import sliding_window_view
 from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
+forecast_path = 'rain_files/Forecasts/'
+forecast_mode = '-plusMin.csv'
 files = glob.glob(rain_path + '/*.csv')
-event_df = pd.read_csv(files[45], index_col=False)
+cur_file = files[8]
+event_dates = cur_file.split('\\')[1].split('.')[0]
+event_df = pd.read_csv(cur_file, index_col=False)
 rain_header = list(event_df)[1]
 rain_array = event_df[rain_header].to_numpy()
+
 
 dt = 60
 rain_dt = 60 * 10
 release_dt = 30 * 60
 beta = 5 / 4
 manning = 0.012
-single = False
+single = True
 if single:
     sim_days = min(math.ceil(len(event_df)*rain_dt/(3600*24)) + 0.5, round(len(event_df)*rain_dt/(3600*24)) + 1)
 else:
@@ -47,6 +52,7 @@ forecast_window = int(forecast_hr * 3600 / rain_dt)
 window_step = int(forecast_interval / rain_dt)
 rain_array = np.concatenate((rain_array, np.zeros(forecast_window - 1)))
 rain_array_stacked = sliding_window_view(rain_array, int(forecast_window))[::int(window_step), :]
+forecast_array = np.genfromtxt(forecast_path + event_dates + forecast_mode, delimiter=',')
 Cd = 0.5
 # Deterministic demands - Change if necessary!
 demand_dt = 3 * 60 * 60
