@@ -9,9 +9,9 @@ from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
 forecast_path = 'rain_files/Forecasts/'
-forecast_mode = '-plusMin.csv'
+forecast_mode = '-swap.csv'
 files = glob.glob(rain_path + '/*.csv')
-cur_file = files[66]
+cur_file = files[0]
 event_dates = cur_file.split('\\')[1].split('.')[0]
 event_df = pd.read_csv(cur_file, index_col=False)
 rain_header = list(event_df)[1]

@@ -544,7 +544,7 @@ if optimize:
         real_time += cfg.sample_len
 
     print(best_solution_all)
-    dump_to_file(best_solution_all, cfg.event_dates + '-plusMin')
+    dump_to_file(best_solution_all, cfg.event_dates + '-swap')
 
 real_rain = True
 if real_rain:
@@ -567,7 +567,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file(cfg.event_dates + '-plusMin')
+    arr = unload_from_file(cfg.event_dates + '-swap')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
