@@ -455,42 +455,46 @@ real_time = 0
 meta_path = 'rain_files/df_rain_files/df_events/meta/'
 meta_file = 'all_metas.csv'
 meta_df = pd.read_csv(meta_path + meta_file, index_col=False)
-for file in cfg.files:
-    event_df = pd.read_csv(file, index_col=False)
-    rain_header = list(event_df)[1]
-    rain_array = event_df[rain_header].to_numpy()
-    sim_days = min(math.ceil(len(event_df) * cfg.rain_dt / (3600 * 24)) + 0.5,
-                   round(len(event_df) * cfg.rain_dt / (3600 * 24)) + 1)
-    sim_len = int(sim_days * 24 * 60 * 60 / cfg.dt)
-    event_start_time = datetime.strptime(event_df['Time'][0].split(' ')[1], '%H:%M:%S').time()
-    event_start_idx = int(event_start_time.hour * 60 + event_start_time.minute * (60 / cfg.dt)) - 1
-    Pipe.reset_pipe_all(sim_len, 'factory')
-    Tank.reset_all(sim_len, 'factory')
-    baseline = Scenario()
-    act_rain = rain_input_from_array(rain_array, sim_len)
-    Tank.set_inflow_forecast_all(act_rain)
-    lat_flows = swmm_run_inflows(act_rain, sim_days * 24, cfg.swmm_files[(False, 'sim')])
-    Node.set_lat_flows_all(lat_flows)
-    run_model(sim_len, act_rain, swmm_optim)
-    baseline.set_atts()
-    baseline.set_swmm_flow(swmm_run(act_rain, sim_days * 24, 'clustered-no_roof.inp'))
-    Pipe.reset_pipe_all(sim_len, 'factory')
-    Tank.reset_all(sim_len, 'factory')
-    Tank.set_inflow_forecast_all(act_rain)
-    event_dates = file.split('\\')[1].split('.')[0]
-    arr = unload_from_file(event_dates + '-perfect')
-    Tank.set_releases_all(arr)
-    run_model(sim_len, act_rain, swmm_optim)
-    optimized = Scenario()
-    optimized.set_atts()
-    optimized.set_swmm_flow(swmm_run(act_rain, sim_days * 24, 'clustered-no_roof.inp'))
-    event_idx = meta_df.loc[meta_df['Dates'] == file.split('\\')[1].split('.')[0]].index[0]
-    meta_df.at[event_idx, 'Baseline_max'] = baseline.max_swmm_flow
-    meta_df.at[event_idx, 'Optimized_max'] = optimized.max_swmm_flow
-    meta_df.at[event_idx, 'Flow_reduction'] = (baseline.max_swmm_flow - optimized.max_swmm_flow) * 100 / \
-                                              baseline.max_swmm_flow
-    meta_df.at[event_idx, 'Baseline_water'] = baseline.available_water
-    meta_df.at[event_idx, 'Optimized_water'] = optimized.available_water
-    meta_df.at[event_idx, 'Water_reduction'] = (baseline.available_water - optimized.available_water) * 100 / \
-                                              baseline.available_water
+suffix_list = ['-perfect', '-plusMin', '-swap']
+for suff in suffix_list:
+    for file in cfg.files:
+        event_df = pd.read_csv(file, index_col=False)
+        rain_header = list(event_df)[1]
+        rain_array = event_df[rain_header].to_numpy()
+        sim_days = min(math.ceil(len(event_df) * cfg.rain_dt / (3600 * 24)) + 0.5,
+                       round(len(event_df) * cfg.rain_dt / (3600 * 24)) + 1)
+        sim_len = int(sim_days * 24 * 60 * 60 / cfg.dt)
+        event_start_time = datetime.strptime(event_df['Time'][0].split(' ')[1], '%H:%M:%S').time()
+        event_start_idx = int(event_start_time.hour * 60 + event_start_time.minute * (60 / cfg.dt)) - 1
+        Pipe.reset_pipe_all(sim_len, 'factory')
+        Tank.reset_all(sim_len, 'factory')
+        baseline = Scenario()
+        act_rain = rain_input_from_array(rain_array, sim_len)
+        Tank.set_inflow_forecast_all(act_rain)
+        lat_flows = swmm_run_inflows(act_rain, sim_days * 24, cfg.swmm_files[(False, 'sim')])
+        Node.set_lat_flows_all(lat_flows)
+        run_model(sim_len, act_rain, swmm_optim)
+        baseline.set_atts()
+        baseline.set_swmm_flow(swmm_run(act_rain, sim_days * 24, 'clustered-no_roof.inp'))
+        Pipe.reset_pipe_all(sim_len, 'factory')
+        Tank.reset_all(sim_len, 'factory')
+        Tank.set_inflow_forecast_all(act_rain)
+        event_dates = file.split('\\')[1].split('.')[0]
+        arr = unload_from_file(event_dates + suff)
+        Tank.set_releases_all(arr)
+        run_model(sim_len, act_rain, swmm_optim)
+        optimized = Scenario()
+        optimized.set_atts()
+        optimized.set_swmm_flow(swmm_run(act_rain, sim_days * 24, 'clustered-no_roof.inp'))
+        event_idx = meta_df.loc[meta_df['Dates'] == file.split('\\')[1].split('.')[0]].index[0]
+        if suff == '-perfect':
+            meta_df.at[event_idx, 'Baseline_max'] = baseline.max_swmm_flow
+            meta_df.at[event_idx, 'Baseline_water'] = baseline.available_water
+        meta_df.at[event_idx, 'max_flow'+suff] = optimized.max_swmm_flow
+        meta_df.at[event_idx, 'Flow_reduction'+suff] = (baseline.max_swmm_flow - optimized.max_swmm_flow) * 100 / \
+                                                  baseline.max_swmm_flow
+
+        meta_df.at[event_idx, 'water'+suff] = optimized.available_water
+        meta_df.at[event_idx, 'Water_reduction'+suff] = (baseline.available_water - optimized.available_water) * 100 / \
+                                                  baseline.available_water
 print('end')
