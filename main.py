@@ -419,7 +419,7 @@ def set_no_rwh_scenario():
     run_model(cfg.sim_len, act_rain, swmm_optim)
     no_rwh = Scenario()
     no_rwh.set_atts()
-    no_rwh.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    no_rwh.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
     return no_rwh
 
 
