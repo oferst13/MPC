@@ -544,7 +544,7 @@ if optimize:
         real_time += cfg.sample_len
 
     print(best_solution_all)
-    dump_to_file(best_solution_all, cfg.event_dates + '-swap')
+    dump_to_file(best_solution_all, cfg.event_dates + '-perfect')
 
 
 real_rain = True

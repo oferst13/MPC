@@ -9,9 +9,9 @@ from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
 forecast_path = 'rain_files/Forecasts/'
-forecast_mode = '-swap.csv'
+forecast_mode = '-perfect.csv'
 files = glob.glob(rain_path + '/*.csv')
-cur_file = files[0]
+cur_file = files[9]
 event_dates = cur_file.split('\\')[1].split('.')[0]
 event_df = pd.read_csv(cur_file, index_col=False)
 rain_header = list(event_df)[1]
@@ -52,7 +52,10 @@ forecast_window = int(forecast_hr * 3600 / rain_dt)
 window_step = int(forecast_interval / rain_dt)
 rain_array = np.concatenate((rain_array, np.zeros(forecast_window - 1)))
 rain_array_stacked = sliding_window_view(rain_array, int(forecast_window))[::int(window_step), :]
-forecast_array = np.genfromtxt(forecast_path + event_dates + forecast_mode, delimiter=',')
+if forecast_mode == '-perfect.csv':
+    forecast_array = copy.copy(rain_array_stacked)
+else:
+    forecast_array = np.genfromtxt(forecast_path + event_dates + forecast_mode, delimiter=',')
 Cd = 0.5
 # Deterministic demands - Change if necessary!
 demand_dt = 3 * 60 * 60
