@@ -23,7 +23,7 @@ rain_dt = 60 * 10
 release_dt = 30 * 60
 beta = 5 / 4
 manning = 0.012
-single = True
+single = False
 if single:
     sim_days = min(math.ceil(len(event_df)*rain_dt/(3600*24)) + 0.5, round(len(event_df)*rain_dt/(3600*24)) + 1)
 else:

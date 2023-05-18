@@ -490,6 +490,7 @@ for suff in suffix_list:
         if suff == '-perfect':
             meta_df.at[event_idx, 'Baseline_max'] = baseline.max_swmm_flow
             meta_df.at[event_idx, 'Baseline_water'] = baseline.available_water
+            meta_df.at[event_idx, 'try'] = np.argmax(baseline.swmm_flow) / len(baseline.swmm_flow)
         meta_df.at[event_idx, 'max_flow'+suff] = optimized.max_swmm_flow
         meta_df.at[event_idx, 'Flow_reduction'+suff] = (baseline.max_swmm_flow - optimized.max_swmm_flow) * 100 / \
                                                   baseline.max_swmm_flow
@@ -497,4 +498,10 @@ for suff in suffix_list:
         meta_df.at[event_idx, 'water'+suff] = optimized.available_water
         meta_df.at[event_idx, 'Water_reduction'+suff] = (baseline.available_water - optimized.available_water) * 100 / \
                                                   baseline.available_water
+
+meta_df['Flow_from_perfect-plusMin'] = 100 * (meta_df['max_flow-plusMin'] - meta_df['max_flow-perfect']) / meta_df['max_flow-perfect']
+meta_df['Flow_from_perfect-swap'] = 100 * (meta_df['max_flow-swap'] - meta_df['max_flow-perfect']) / meta_df['max_flow-perfect']
+meta_df['Water_from_perfect-plusMin'] = 100 * (meta_df['water-plusMin'] - meta_df['water-perfect']) / meta_df['water-perfect']
+meta_df['Water_from_perfect-swap'] = 100 * (meta_df['water-swap'] - meta_df['water-perfect']) / meta_df['water-perfect']
+
 print('end')
