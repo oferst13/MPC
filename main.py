@@ -15,7 +15,6 @@ import pyswmm
 from datetime import datetime, timedelta
 import pandas as pd
 
-
 class Scenario:
     def __init__(self):
         self.reset_scenario()
@@ -547,6 +546,7 @@ if optimize:
     print(best_solution_all)
     dump_to_file(best_solution_all, cfg.event_dates + '-perfect')
 
+
 real_rain = True
 if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
@@ -575,11 +575,10 @@ if real_rain:
     optimized = Scenario()
     optimized.set_atts()
     optimized.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
-    results_df = pd.read_csv('results-mae.csv', index_col=False)
     FR = (baseline.max_swmm_flow - optimized.max_swmm_flow) * 100 / baseline.max_swmm_flow
     WR = (baseline.available_water - optimized.available_water) * 100 / baseline.available_water
+    results_df = pd.read_csv('results-mae.csv', index_col=False)
     print(FR)
     print(WR)
     plot_compare(baseline.swmm_flow, optimized.swmm_flow, 'LPS')
-
 print('end')
