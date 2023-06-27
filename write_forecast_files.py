@@ -9,15 +9,15 @@ import math
 from numpy.lib.stride_tricks import sliding_window_view
 from datetime import datetime
 
-swap_probs = [0.2, 0.3, 0.4]
-vol_probs = [0.2, 0.3, 0.4]
+swap_probs = [0.5, 0.6, 0.7]
+vol_probs = [0.6, 0.7, 0.8]
 swap = True
 if swap:
     suffix = '-swap.csv'
 else:
     suffix = '-plusMin.csv'
 rain_path = 'rain_files/df_rain_files/df_events'
-forecast_path = 'rain_files/Forecasts/'
+forecast_path = 'rain_files/Forecasts-worse/'
 files = glob.glob(rain_path + '/*.csv')
 for file in files:
     event_df = pd.read_csv(file, index_col=False)

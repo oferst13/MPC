@@ -8,10 +8,10 @@ from numpy.lib.stride_tricks import sliding_window_view
 from datetime import datetime
 
 rain_path = 'rain_files/df_rain_files/df_events'
-forecast_path = 'rain_files/Forecasts/'
-forecast_mode = '-perfect.csv'
+forecast_path = 'rain_files/Forecasts-worse/'
+forecast_mode = '-plusMin.csv'
 files = glob.glob(rain_path + '/*.csv')
-cur_file = files[44]
+cur_file = files[60]
 event_dates = cur_file.split('\\')[1].split('.')[0]
 event_df = pd.read_csv(cur_file, index_col=False)
 rain_header = list(event_df)[1]
@@ -23,7 +23,7 @@ rain_dt = 60 * 10
 release_dt = 30 * 60
 beta = 5 / 4
 manning = 0.012
-single = False
+single = True
 if single:
     sim_days = min(math.ceil(len(event_df)*rain_dt/(3600*24)) + 0.5, round(len(event_df)*rain_dt/(3600*24)) + 1)
 else:

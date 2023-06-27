@@ -353,7 +353,7 @@ def plot_release_policy(release_arr):
     for gg, graph in enumerate(releases_2plot):
         plt.step(t, graph * 10, cl[gg], where='post', label=f'Tank {gg + 1}', linewidth=4 - 0.7 * gg, linestyle=ls[gg])
     fig = plt.gcf()
-    fig.set_size_inches(6, 3.75)
+    fig.set_size_inches(7.5, 5)
     fig.tight_layout(pad=1.5)
     plt.legend(loc='center right')
     plt.xlabel('t (hours)')
@@ -380,7 +380,7 @@ def plot_tank_storage():
     # plt.xticks(np.arange(0, plot_hours+1, 1.0))
     fig.set_size_inches(7.5, 5)
     fig.tight_layout(pad=1.5)
-    plt.legend(loc='upper right')
+    plt.legend(loc='center right')
     # , bbox_to_anchor=(0.6,0))
     plt.xlabel('t (hours)')
     plt.ylabel('Tank storage %')
@@ -544,7 +544,7 @@ if optimize:
         real_time += cfg.sample_len
 
     print(best_solution_all)
-    dump_to_file(best_solution_all, cfg.event_dates + '-perfect')
+    dump_to_file(best_solution_all, 'worse/'+cfg.event_dates+cfg.forecast_mode.split('.')[0])
 
 
 real_rain = True
@@ -568,7 +568,7 @@ if real_rain:
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file(cfg.event_dates + '-perfect')
+    arr = unload_from_file('worse/' + cfg.event_dates + '-plusMin')
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
