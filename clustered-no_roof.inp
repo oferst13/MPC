@@ -42,13 +42,13 @@ THREADS              1
 [EVAPORATION]
 ;;Data Source    Parameters
 ;;-------------- ----------------
-TIMESERIES       evap
+CONSTANT         2.5
 DRY_ONLY         YES
 
 [RAINGAGES]
 ;;Name           Format    Interval SCF      Source    
 ;;-------------- --------- ------ ------ ----------
-RG1              VOLUME    0:10     1.0      TIMESERIES 09-10           
+RG1              VOLUME    0:10     1.0      TIMESERIES mm              
 
 [SUBCATCHMENTS]
 ;;Name           Rain Gage        Outlet           Area     %Imperv  Width    %Slope   CurbLen  SnowPack        
@@ -142,6 +142,8 @@ t3               FILE "tank3.dat"
 t4               FILE "tank4.dat"
 ;
 t1               FILE "tank1.dat"
+;
+mm               FILE "mmm.dat"
 
 [REPORT]
 ;;Reporting Options

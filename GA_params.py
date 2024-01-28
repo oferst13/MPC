@@ -10,11 +10,12 @@ mutation_prob = 0.07
 mutation_by_replacement = True
 mutation_type = "random"
 stop_criteria = "saturate_75"
+elitism = 2
 
 
 def pop_init(release_interval, n_tanks):
     num_genes = release_interval * n_tanks
-    num_sols = math.ceil(num_genes * 1.3)
+    num_sols = math.ceil(num_genes * 1.4)
     sol_zero = np.zeros(num_genes)
     sol_one = np.ones(num_genes) * gene_space[0]
     sol_two = np.ones(num_genes) * gene_space[1]
@@ -29,5 +30,5 @@ def pop_init(release_interval, n_tanks):
 
 
 def set_parent_num(release_hr, n_tanks):
-    num_parents = math.ceil(release_hr * n_tanks * 2 * 0.06)
+    num_parents = math.ceil(release_hr * n_tanks * 2 * 0.08)
     return num_parents

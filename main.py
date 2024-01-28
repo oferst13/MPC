@@ -12,8 +12,8 @@ import GA_params as ga
 import pickle
 from matplotlib import pyplot as plt
 import pyswmm
-from datetime import datetime
-
+from datetime import datetime, timedelta
+import pandas as pd
 
 class Scenario:
     def __init__(self):
@@ -35,7 +35,8 @@ class Scenario:
     def calc_obj_Q(self):
         tot_out_vol = outfall.get_outflow_volume()
         if tot_out_vol > 0.0001:
-            self.obj_Q = tot_out_vol / (Tank.get_last_overflow() * cfg.dt)
+            #self.obj_Q = tot_out_vol / (Tank.get_last_overflow() * cfg.dt)
+            self.obj_Q = tot_out_vol / (outfall.get_zero_Q() * cfg.dt)
         else:
             self.obj_Q = 0.00001
 
@@ -117,6 +118,16 @@ def set_rain_input(rainfile, rain_dt, duration):
     return rain
 
 
+def rain_input_from_array(array, duration, idx=None, forecast_type='actual'):
+    rain = np.zeros(int(duration / (cfg.rain_dt / cfg.dt)))
+    if idx is not None:
+        rain_input = array[idx]
+    else:
+        rain_input = array
+    rain[:len(rain_input)] = rain_input
+    return rain
+
+
 def set_rain_filename(prefix, idx, is_forecast):
     idx_str = str(idx)
     cur_filename = '-'.join([prefix, idx_str])
@@ -144,7 +155,7 @@ def run_model(duration, rain, swmm_=False):
             if swmm_ is False:
                 continue
             try:
-                if np.sum(lat_flows[:, i]) < 0.1:
+                if np.sum(lat_flows[:, i]) < 0.01:
                     continue
             except IndexError:
                 continue
@@ -185,17 +196,19 @@ def set_ga_instance():
                        mutation_by_replacement=ga.mutation_by_replacement,
                        stop_criteria=ga.stop_criteria,
                        fitness_func=fitness_func,
-                       on_generation=on_gen)
+                       on_generation=on_gen,
+                       keep_elitism=ga.elitism,
+                       save_best_solutions=False)
     return ga_inst
 
 
 def dump_to_file(thingy, filename):
-    with open(filename, 'wb') as file:
+    with open(r'policies/' + filename, 'wb') as file:
         pickle.dump(thingy, file)
 
 
 def unload_from_file(filename):
-    with open(filename, 'rb') as file:
+    with open(r'policies/' + filename, 'rb') as file:
         thingy = pickle.load(file)
     return thingy
 
@@ -260,7 +273,7 @@ def swmm_run(rain, hours, filename):
         tank3_s = pyswmm.Nodes(sim)['tank3']
         tank4_s = pyswmm.Nodes(sim)['tank4']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, hours, 1, 1)
+        sim.end_time = sim.start_time + timedelta(minutes=(hours*60)+1)
         tank_list = [tank1_s, tank2_s, tank3_s, tank4_s]
         i = 0
         for step in sim:
@@ -284,7 +297,7 @@ def swmm_run_inflows(rain, hours, filename):
         j12 = pyswmm.Nodes(sim)['12']
         j21 = pyswmm.Nodes(sim)['21']
         sim.start_time = datetime(2021, 1, 1, 0, 0, 0)
-        sim.end_time = datetime(2021, 1, 1, hours, 1)
+        sim.end_time = sim.start_time + timedelta(minutes=(hours*60)+1)
         node_list = [j111, j11, j12, j21, outfall_s]
         node_inflows = np.zeros((len(node_list), int(hours * 3600 / cfg.dt)))
         i = 0
@@ -340,7 +353,7 @@ def plot_release_policy(release_arr):
     for gg, graph in enumerate(releases_2plot):
         plt.step(t, graph * 10, cl[gg], where='post', label=f'Tank {gg + 1}', linewidth=4 - 0.7 * gg, linestyle=ls[gg])
     fig = plt.gcf()
-    fig.set_size_inches(6, 3.75)
+    fig.set_size_inches(7.5, 5)
     fig.tight_layout(pad=1.5)
     plt.legend(loc='center right')
     plt.xlabel('t (hours)')
@@ -367,7 +380,7 @@ def plot_tank_storage():
     # plt.xticks(np.arange(0, plot_hours+1, 1.0))
     fig.set_size_inches(7.5, 5)
     fig.tight_layout(pad=1.5)
-    plt.legend(loc='upper right')
+    plt.legend(loc='center right')
     # , bbox_to_anchor=(0.6,0))
     plt.xlabel('t (hours)')
     plt.ylabel('Tank storage %')
@@ -406,7 +419,7 @@ def set_no_rwh_scenario():
     run_model(cfg.sim_len, act_rain, swmm_optim)
     no_rwh = Scenario()
     no_rwh.set_atts()
-    no_rwh.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    no_rwh.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
     return no_rwh
 
 
@@ -423,8 +436,8 @@ def set_passive_scenario(array_like, valve_setting):
     return passive
 
 
-num_forecast_files = cfg.forecast_files
-forecast_indices = set_forecast_idx(1, num_forecast_files, int(cfg.sample_interval / cfg.forecast_interval))
+num_forecasts = len(cfg.forecast_array)
+forecast_indices = set_forecast_idx(0, num_forecasts, int(cfg.sample_interval / cfg.forecast_interval))
 tank1_dict = {'name': 'tank1', 'n_tanks': 30, 'init_storage': 0, 'roof': 9000, 'dwellers': 180}
 tank2_dict = {'name': 'tank2', 'n_tanks': 35, 'init_storage': 0, 'roof': 10000, 'dwellers': 190}
 tank3_dict = {'name': 'tank3', 'n_tanks': 25, 'init_storage': 0, 'roof': 8500, 'dwellers': 155}
@@ -444,17 +457,17 @@ outlet3 = Pipe('outlet3', 220, 0.4, 0.02)
 outlet4 = Pipe('outlet4', 350, 0.4, 0.007)
 
 pipe1 = Pipe('pipe1', 400, 0.4, 0.0063)
-#pipe1 = Pipe('pipe1', 200, 0.4, 0.0125)
+# pipe1 = Pipe('pipe1', 200, 0.4, 0.0125)
 pipe2 = Pipe('pipe2', 500, 0.6, 0.002)
-#pipe2 = Pipe('pipe2', 200, 0.6, 0.005)
+# pipe2 = Pipe('pipe2', 200, 0.6, 0.005)
 pipe3 = Pipe('pipe3', 400, 0.4, 0.0013)
-#pipe3 = Pipe('pipe3', 150, 0.4, 0.0033)
+# pipe3 = Pipe('pipe3', 150, 0.4, 0.0033)
 pipe4 = Pipe('pipe4', 400, 0.8, 0.0088)
-#pipe4 = Pipe('pipe4', 200, 0.8, 0.0175)
+# pipe4 = Pipe('pipe4', 200, 0.8, 0.0175)
 pipe5 = Pipe('pipe5', 300, 0.4, 0.005)
-#pipe5 = Pipe('pipe5', 200, 0.4, 0.02)
+# pipe5 = Pipe('pipe5', 200, 0.4, 0.02)
 pipe6 = Pipe('pipe6', 200, 0.8, 0.01)
-#pipe6 = Pipe('pipe6', 120, 0.8, 0.017)
+# pipe6 = Pipe('pipe6', 120, 0.8, 0.017)
 
 tank1_out = Node('tank1_out', [tank1], [outlet1], tank_node=True)
 tank2_out = Node('tank1_out', [tank2], [outlet2], tank_node=True)
@@ -477,11 +490,13 @@ if swmm_optim is False:
         node.lat_node = False
     Node.lat_nodes = []
 real_time = 0
-optimize = False
+optimize = True
+
 if optimize:
     for forecast_idx in forecast_indices:
-        forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True) #np.lib.stride_tricks.sliding_window_view
-        forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
+        # forecast_file = set_rain_filename('20-21', forecast_idx, is_forecast=True)
+        # forecast_rain = set_rain_input(forecast_file, cfg.rain_dt, cfg.forecast_len)
+        forecast_rain = rain_input_from_array(cfg.forecast_array, cfg.forecast_len, idx=forecast_idx)
         Tank.set_inflow_forecast_all(forecast_rain)  # happens once a forecast is made
         try:
             baseline
@@ -503,14 +518,14 @@ if optimize:
         last_overflow = Tank.get_last_overflow()
         obj_Q = (integrate.simps(baseline.outfall_flow, cfg.t[:len(baseline.outfall_flow)])) / cfg.forecast_len
 
-        if baseline.obj_Q > 0.0001 and Tank.get_cum_overflow() > 0.5:
+        if baseline.obj_Q > 0.01 and Tank.get_cum_overflow() > 5:
             ga_instance = set_ga_instance()
             ga_instance.run()
             best_solution = np.reshape(ga_instance.best_solution()[0],
                                        (len(Tank.all_tanks), baseline.release_intervals))
         else:
             best_solution = np.zeros((len(Tank.all_tanks), int(cfg.release_array)))
-        if forecast_idx == 1:
+        if forecast_idx == forecast_indices[0]:
             best_solution_all = best_solution[:, 0:int(cfg.sample_interval / cfg.control_interval)]
         else:
             best_solution_all = np.concatenate(
@@ -518,8 +533,9 @@ if optimize:
         Tank.reset_all(cfg.sample_len, 'iter')
         Tank.set_releases_all(best_solution)
         Pipe.reset_pipe_all(cfg.sample_len, 'iter')
-        period_file = set_rain_filename('20-21', forecast_idx, is_forecast=False)
-        period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
+        #period_file = set_rain_filename('20-21', forecast_idx, is_forecast=False)
+        #period_rain = set_rain_input(period_file, cfg.rain_dt, cfg.forecast_len)
+        period_rain = rain_input_from_array(cfg.rain_array_stacked, cfg.forecast_len, idx=forecast_idx)
         Tank.set_inflow_forecast_all(period_rain)
         sim_state = 'real'
         swmm_file = set_swmm_file(real_time, sim_state)
@@ -528,6 +544,8 @@ if optimize:
         real_time += cfg.sample_len
 
     print(best_solution_all)
+    dump_to_file(best_solution_all, 'worse/'+cfg.event_dates+cfg.forecast_mode.split('.')[0])
+
 
 real_rain = True
 if real_rain:
@@ -539,21 +557,28 @@ if real_rain:
         baseline = Scenario()
     else:
         baseline.reset_scenario()
-    act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    #act_rain = set_rain_input('09-10.csv', cfg.rain_dt, cfg.sim_len)
+    act_rain = rain_input_from_array(cfg.rain_array, cfg.sim_len)
     Tank.set_inflow_forecast_all(act_rain)
-    lat_flows = swmm_run_inflows(act_rain, 21, cfg.swmm_files[(False, 'sim')])
+    lat_flows = swmm_run_inflows(act_rain, cfg.sim_days*24, cfg.swmm_files[(False, 'sim')])
     Node.set_lat_flows_all(lat_flows)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     baseline.set_atts()
-    baseline.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    baseline.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
     Pipe.reset_pipe_all(cfg.sim_len, 'factory')
     Tank.reset_all(cfg.sim_len, 'factory')
     Tank.set_inflow_forecast_all(act_rain)
-    arr = unload_from_file('20-21-20min')
+    arr = unload_from_file('worse/' + cfg.event_dates + cfg.forecast_mode.split('.')[0])
     Tank.set_releases_all(arr)
     run_model(cfg.sim_len, act_rain, swmm_optim)
     print(f"Mass Balance Error: {calc_mass_balance():0.2f}%")
     optimized = Scenario()
     optimized.set_atts()
-    optimized.set_swmm_flow(swmm_run(act_rain, 21, 'clustered-no_roof.inp'))
+    optimized.set_swmm_flow(swmm_run(act_rain, cfg.sim_days*24, 'clustered-no_roof.inp'))
+    FR = (baseline.max_swmm_flow - optimized.max_swmm_flow) * 100 / baseline.max_swmm_flow
+    WR = (baseline.available_water - optimized.available_water) * 100 / baseline.available_water
+    results_df = pd.read_csv('results-mae.csv', index_col=False)
+    print(FR)
+    print(WR)
+    plot_compare(baseline.swmm_flow, optimized.swmm_flow, 'LPS')
 print('end')
