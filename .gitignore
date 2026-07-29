@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environments and IDE state
+.venv/
+venv/
+.idea/
+.vscode/
+
+# SWMM runtime artifacts
+*.out
+*.rpt
+*.hsf
+
+# Local scratch and generated series
+aaa.csv
+temp*.csv
+tank[1-4].csv
+mmm.dat
+mmm.txt
+test*.hsf
+
+# Local operating-system files
+.DS_Store
+Thumbs.db
